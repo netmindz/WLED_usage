@@ -1,6 +1,7 @@
 package com.github.wled.usage
 
 import java.io.IOException
+import java.math.BigInteger
 import java.net.InetSocketAddress
 import java.net.SocketAddress
 import java.nio.ByteBuffer
@@ -62,6 +63,7 @@ class DatagramChannelBuilder {
 data class WLEDUsageV1(
     val header: Byte,
     val length: Int,
+    val deviceId: String,
     val version: String,
     val chip: String,
     val uptime: Int? = null,
@@ -71,15 +73,24 @@ data class WLEDUsageV1(
     constructor(bytes: ByteArray) : this(
         header = bytes[0],
         length = bytes[1].toInt(),
-        version = getString(2, 20, bytes),
-        chip = getString(22, 15, bytes)
-//        uptime = ByteBuffer.wrap(bytes.copyOfRange(37, 39)).int,
-//        totalLEDs = bytes.decodeToString(39, 41).toUInt(),
-//        isMatrix = false, //bytes.decodeToString(41, 42).toInt() == 1,
+        deviceId = getString(1, 41, bytes),
+        version = getString(42, 20, bytes),
+        chip = getString(62, 15, bytes),
+        uptime = getInt(77, bytes),
+        totalLEDs = getInt(79, bytes),
+        isMatrix = BigInteger(bytes.copyOfRange(81, 82)).toInt() == 1,
     )
 
     companion object {
         private fun getString(start: Int, length: Int, bytes: ByteArray) =
             bytes.copyOfRange(start, start+length).filter { it.toInt() != 0 }.toByteArray().decodeToString()
+
+        private fun getInt(start: Int, bytes: ByteArray): Int {
+            val foo = bytes.copyOfRange(start, start+2)
+            val bar : ByteArray = ByteArray(2)
+            bar[0] = foo[1];
+            bar[1] = foo[0];
+            return BigInteger(bar).toInt()
+        }
     }
 }
