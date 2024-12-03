@@ -21,9 +21,8 @@ class UDPServer {
         @Throws(IOException::class)
         fun receiveMessage(server: DatagramChannel) {
             val buffer: ByteBuffer = ByteBuffer.allocate(2024)
-            val remoteAdd = server.receive(buffer)
             val message: String = extractMessage(buffer).toString()
-            println("Client at $remoteAdd\nsent: $message")
+            println("Client sent: $message")
         }
 
         @OptIn(ExperimentalStdlibApi::class)
