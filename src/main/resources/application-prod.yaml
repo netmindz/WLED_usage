@@ -1,0 +1,5 @@
+spring:
+  datasource:
+    url: 'jdbc:mysql://ralf.netmindz.net:3306/wled'
+    username: wled
+    password: {WLED_DB_PASSWORD}
