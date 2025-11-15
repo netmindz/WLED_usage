@@ -134,11 +134,13 @@
 						<plugin>spring</plugin>
 						<plugin>jpa</plugin>
 					</compilerPlugins>
+					<!--
 					<pluginOptions>
 						<option>all-open:annotation=jakarta.persistence.Entity</option>
 						<option>all-open:annotation=jakarta.persistence.MappedSuperclass</option>
 						<option>all-open:annotation=jakarta.persistence.Embeddable</option>
-					</pluginOptions>
+						</pluginOptions>
+					-->
 				</configuration>
 				<dependencies>
 					<dependency>
