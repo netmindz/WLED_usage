@@ -1,0 +1,43 @@
+# This workflow will build a package using Maven and then publish it to GitHub packages when a release is created
+# For more information see: https://github.com/actions/setup-java/blob/main/docs/advanced-usage.md#apache-maven-with-a-settings-path
+
+name: Maven build
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: Set up JDK
+      uses: actions/setup-java@v4
+      with:
+        java-version: '21'
+        distribution: 'temurin'
+    - name: Cache local Maven repository
+      uses: actions/cache@v4
+      with:
+        path: ~/.m2/repository
+        key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+        restore-keys: |
+          ${{ runner.os }}-maven-
+    - name: Build with Maven
+      run: |
+        mvn -B -DskipTests package # TODO: fix this
+
+    - name: Deploy Task
+      uses: alex-ac/github-action-ssh-docker-compose@master
+      with:
+        ssh_host: wled-usage.netmindz.net
+        ssh_private_key: ${{ secrets.DEPLOY_SSH_PRIVATE_KEY }}
+        ssh_user: wled
+        docker_compose_prefix: wled
