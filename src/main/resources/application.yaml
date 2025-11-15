@@ -1,0 +1,10 @@
+spring:
+  application:
+    name: WLED Usage
+  datasource:
+    driver-class-name: com.mysql.jdbc.Driver
+  jpa:
+    show-sql: false
+    database-platform: org.hibernate.dialect.MySQLDialect
+    hibernate:
+      ddl-auto: none

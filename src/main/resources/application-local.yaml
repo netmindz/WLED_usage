@@ -1,0 +1,4 @@
+datasource:
+  url: 'jdbc:mysql://localhost:23306/wled'
+  username: wled
+  password: wled

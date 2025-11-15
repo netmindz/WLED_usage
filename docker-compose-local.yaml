@@ -1,0 +1,13 @@
+services:
+  db:
+    image: mariadb:11
+    volumes:
+      - ./db-init:/docker-entrypoint-initdb.d/
+      - db-data:/var/lib/mysql
+    environment:
+      MARIADB_ROOT_PASSWORD: changeme
+    ports:
+      - "23306:3306"
+
+volumes:
+  db-data:

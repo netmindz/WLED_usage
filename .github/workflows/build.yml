@@ -41,3 +41,4 @@ jobs:
         ssh_private_key: ${{ secrets.DEPLOY_SSH_PRIVATE_KEY }}
         ssh_user: wled
         docker_compose_prefix: wled
+        docker_compose_filename: docker-compose-prod.yaml

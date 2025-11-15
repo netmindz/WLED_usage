@@ -1,0 +1,9 @@
+services:
+  backend:
+    build: .
+    ports:
+      - "8091:8080"
+    environment:
+      SPRING_PROFILES_ACTIVE: "prod"
+    logging:
+      driver: journald
