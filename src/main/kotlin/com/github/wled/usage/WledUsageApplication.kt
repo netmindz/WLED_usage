@@ -7,12 +7,8 @@ import org.springframework.boot.runApplication
 class WledUsageApplication
 
 fun main(args: Array<String>) {
-	val server = UDPServer()
-	UDPServer.receiveMessage(server.startServer())
-	println("UDP server started")
-//	while(true) {
-//		Thread.sleep(1000)
-//	}
-//	runApplication<WledUsageApplication>(*args)
+//	val server = UDPServer()
+//	UDPServer.receiveMessage(server.startServer())
+	runApplication<WledUsageApplication>(*args)
 }
 

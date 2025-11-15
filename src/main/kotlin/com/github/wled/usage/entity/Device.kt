@@ -6,10 +6,10 @@ import jakarta.persistence.Id
 @Entity
 data class Device(
     @Id
-    val deviceId: String,
-    val version: String,
-    val release: String,
+    val id: String,
+    var version: String,
+    var releaseName: String,
     val chip: String,
-    val totalLEDs: Int,
-    val isMatrix: Boolean,
+    var ledCount: Int,
+    var isMatrix: Boolean,
 )
