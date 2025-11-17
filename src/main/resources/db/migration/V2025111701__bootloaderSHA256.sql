@@ -1,0 +1,1 @@
+alter table `device` add column bootloaderSHA256 varchar(255);

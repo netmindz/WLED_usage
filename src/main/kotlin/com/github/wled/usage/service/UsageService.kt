@@ -15,13 +15,15 @@ class UsageService(val deviceRepository: DeviceRepository) {
                 releaseName = request.releaseName,
                 chip = request.chip,
                 ledCount = request.ledCount,
-                isMatrix = request.isMatrix
+                isMatrix = request.isMatrix,
+                bootloaderSHA256 = request.bootloaderSHA256
             )
         )
         device.releaseName = request.releaseName
         device.version = request.version
         device.ledCount = request.ledCount
         device.isMatrix = request.isMatrix
+        device.bootloaderSHA256 = request.bootloaderSHA256
         deviceRepository.save(device)
     }
 

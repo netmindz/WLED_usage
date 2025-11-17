@@ -12,4 +12,5 @@ data class Device(
     val chip: String,
     var ledCount: Int,
     var isMatrix: Boolean,
+    var bootloaderSHA256: String,
 )

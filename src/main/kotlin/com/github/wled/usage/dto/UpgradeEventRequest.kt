@@ -9,4 +9,5 @@ data class UpgradeEventRequest(
     val chip: String,
     val ledCount: Int,
     val isMatrix: Boolean,
+    val bootloaderSHA256: String,
 )
