@@ -13,4 +13,9 @@ data class Device(
     var ledCount: Int,
     var isMatrix: Boolean,
     var bootloaderSHA256: String,
+    var brand: String? = null,
+    var product: String? = null,
+    var flashSize: String? = null,
+    var partitionSizes: String? = null,
+    var psramSize: String? = null,
 )

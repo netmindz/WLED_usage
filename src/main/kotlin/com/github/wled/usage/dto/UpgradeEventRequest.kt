@@ -10,4 +10,9 @@ data class UpgradeEventRequest(
     val ledCount: Int,
     val isMatrix: Boolean,
     val bootloaderSHA256: String,
+    val brand: String? = null,
+    val product: String? = null,
+    val flashSize: String? = null,
+    val partitionSizes: String? = null,
+    val psramSize: String? = null,
 )
