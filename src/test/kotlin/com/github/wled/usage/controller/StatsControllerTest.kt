@@ -1,6 +1,7 @@
 package com.github.wled.usage.controller
 
 import com.github.wled.usage.dto.CountryStats
+import com.github.wled.usage.dto.VersionStats
 import com.github.wled.usage.service.StatsService
 import org.junit.jupiter.api.Test
 import org.mockito.kotlin.whenever
@@ -53,6 +54,43 @@ class StatsControllerTest {
 
         mockMvc.perform(
             get("/api/stats/country")
+                .contentType(MediaType.APPLICATION_JSON)
+        )
+            .andExpect(status().isOk)
+            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+            .andExpect(jsonPath("$").isEmpty)
+    }
+    
+    @Test
+    fun `getVersionStats should return list of version statistics`() {
+        val mockStats = listOf(
+            VersionStats("0.14.0", 150),
+            VersionStats("0.13.3", 100),
+            VersionStats("0.14.1", 80)
+        )
+
+        whenever(statsService.getDeviceCountByVersion()).thenReturn(mockStats)
+
+        mockMvc.perform(
+            get("/api/stats/version")
+                .contentType(MediaType.APPLICATION_JSON)
+        )
+            .andExpect(status().isOk)
+            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+            .andExpect(jsonPath("$[0].version").value("0.14.0"))
+            .andExpect(jsonPath("$[0].deviceCount").value(150))
+            .andExpect(jsonPath("$[1].version").value("0.13.3"))
+            .andExpect(jsonPath("$[1].deviceCount").value(100))
+            .andExpect(jsonPath("$[2].version").value("0.14.1"))
+            .andExpect(jsonPath("$[2].deviceCount").value(80))
+    }
+
+    @Test
+    fun `getVersionStats should return empty list when no devices exist`() {
+        whenever(statsService.getDeviceCountByVersion()).thenReturn(emptyList())
+
+        mockMvc.perform(
+            get("/api/stats/version")
                 .contentType(MediaType.APPLICATION_JSON)
         )
             .andExpect(status().isOk)
