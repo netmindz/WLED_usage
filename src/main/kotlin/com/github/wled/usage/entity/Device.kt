@@ -18,4 +18,5 @@ data class Device(
     var flashSize: String? = null,
     var partitionSizes: String? = null,
     var psramSize: String? = null,
+    var countryCode: String? = null,
 )
