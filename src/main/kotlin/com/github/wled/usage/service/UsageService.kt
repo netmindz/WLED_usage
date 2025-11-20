@@ -7,7 +7,7 @@ import org.springframework.stereotype.Service
 
 @Service
 class UsageService(val deviceRepository: DeviceRepository) {
-    fun recordUpgradeEvent(request: UpgradeEventRequest) {
+    fun recordUpgradeEvent(request: UpgradeEventRequest, countryCode: String?) {
         val device = deviceRepository.findById(request.deviceId).orElse(
             Device(
                 id = request.deviceId,
@@ -21,7 +21,8 @@ class UsageService(val deviceRepository: DeviceRepository) {
                 product = request.product,
                 flashSize = request.flashSize,
                 partitionSizes = request.partitionSizes,
-                psramSize = request.psramSize
+                psramSize = request.psramSize,
+                countryCode = countryCode
             )
         )
         device.releaseName = request.releaseName
@@ -34,6 +35,7 @@ class UsageService(val deviceRepository: DeviceRepository) {
         device.flashSize = request.flashSize
         device.partitionSizes = request.partitionSizes
         device.psramSize = request.psramSize
+        device.countryCode = countryCode
         deviceRepository.save(device)
     }
 
