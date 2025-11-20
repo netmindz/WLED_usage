@@ -16,7 +16,12 @@ class UsageService(val deviceRepository: DeviceRepository) {
                 chip = request.chip,
                 ledCount = request.ledCount,
                 isMatrix = request.isMatrix,
-                bootloaderSHA256 = request.bootloaderSHA256
+                bootloaderSHA256 = request.bootloaderSHA256,
+                brand = request.brand,
+                product = request.product,
+                flashSize = request.flashSize,
+                partitionSizes = request.partitionSizes,
+                psramSize = request.psramSize
             )
         )
         device.releaseName = request.releaseName
@@ -24,6 +29,11 @@ class UsageService(val deviceRepository: DeviceRepository) {
         device.ledCount = request.ledCount
         device.isMatrix = request.isMatrix
         device.bootloaderSHA256 = request.bootloaderSHA256
+        device.brand = request.brand
+        device.product = request.product
+        device.flashSize = request.flashSize
+        device.partitionSizes = request.partitionSizes
+        device.psramSize = request.psramSize
         deviceRepository.save(device)
     }
 
