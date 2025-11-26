@@ -10,4 +10,7 @@ interface DeviceRepository : CrudRepository<Device, String> {
     
     @Query("SELECT d.version as version, COUNT(d) as deviceCount FROM Device d GROUP BY d.version ORDER BY COUNT(d) DESC")
     fun countDevicesByVersion(): List<Map<String, Any>>
+    
+    @Query("SELECT d.chip as chip, COUNT(d) as deviceCount FROM Device d GROUP BY d.chip ORDER BY COUNT(d) DESC")
+    fun countDevicesByChip(): List<Map<String, Any>>
 }
