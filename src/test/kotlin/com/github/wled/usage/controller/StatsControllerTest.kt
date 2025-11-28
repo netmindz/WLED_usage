@@ -1,5 +1,6 @@
 package com.github.wled.usage.controller
 
+import com.github.wled.usage.dto.ChipStats
 import com.github.wled.usage.dto.CountryStats
 import com.github.wled.usage.dto.VersionStats
 import com.github.wled.usage.service.StatsService
@@ -91,6 +92,43 @@ class StatsControllerTest {
 
         mockMvc.perform(
             get("/api/stats/version")
+                .contentType(MediaType.APPLICATION_JSON)
+        )
+            .andExpect(status().isOk)
+            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+            .andExpect(jsonPath("$").isEmpty)
+    }
+    
+    @Test
+    fun `getChipStats should return list of chip statistics`() {
+        val mockStats = listOf(
+            ChipStats("ESP32", 200),
+            ChipStats("ESP8266", 150),
+            ChipStats("ESP32-S3", 100)
+        )
+
+        whenever(statsService.getDeviceCountByChip()).thenReturn(mockStats)
+
+        mockMvc.perform(
+            get("/api/stats/chip")
+                .contentType(MediaType.APPLICATION_JSON)
+        )
+            .andExpect(status().isOk)
+            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+            .andExpect(jsonPath("$[0].chip").value("ESP32"))
+            .andExpect(jsonPath("$[0].deviceCount").value(200))
+            .andExpect(jsonPath("$[1].chip").value("ESP8266"))
+            .andExpect(jsonPath("$[1].deviceCount").value(150))
+            .andExpect(jsonPath("$[2].chip").value("ESP32-S3"))
+            .andExpect(jsonPath("$[2].deviceCount").value(100))
+    }
+
+    @Test
+    fun `getChipStats should return empty list when no devices exist`() {
+        whenever(statsService.getDeviceCountByChip()).thenReturn(emptyList())
+
+        mockMvc.perform(
+            get("/api/stats/chip")
                 .contentType(MediaType.APPLICATION_JSON)
         )
             .andExpect(status().isOk)

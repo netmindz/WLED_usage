@@ -1,5 +1,6 @@
 package com.github.wled.usage.service
 
+import com.github.wled.usage.dto.ChipStats
 import com.github.wled.usage.dto.CountryStats
 import com.github.wled.usage.dto.VersionStats
 import com.github.wled.usage.repository.DeviceRepository
@@ -20,6 +21,15 @@ class StatsService(val deviceRepository: DeviceRepository) {
         return deviceRepository.countDevicesByVersion().map {
             VersionStats(
                 version = it["version"] as String,
+                deviceCount = it["deviceCount"] as Long
+            )
+        }
+    }
+    
+    fun getDeviceCountByChip(): List<ChipStats> {
+        return deviceRepository.countDevicesByChip().map {
+            ChipStats(
+                chip = it["chip"] as String,
                 deviceCount = it["deviceCount"] as Long
             )
         }

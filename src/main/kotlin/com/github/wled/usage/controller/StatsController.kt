@@ -1,5 +1,6 @@
 package com.github.wled.usage.controller
 
+import com.github.wled.usage.dto.ChipStats
 import com.github.wled.usage.dto.CountryStats
 import com.github.wled.usage.dto.VersionStats
 import com.github.wled.usage.service.StatsService
@@ -19,5 +20,10 @@ class StatsController(val statsService: StatsService) {
     @GetMapping("/version")
     fun getVersionStats(): List<VersionStats> {
         return statsService.getDeviceCountByVersion()
+    }
+    
+    @GetMapping("/chip")
+    fun getChipStats(): List<ChipStats> {
+        return statsService.getDeviceCountByChip()
     }
 }
