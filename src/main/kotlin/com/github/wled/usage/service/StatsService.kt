@@ -5,6 +5,7 @@ import com.github.wled.usage.dto.CountryStats
 import com.github.wled.usage.dto.FlashSizeStats
 import com.github.wled.usage.dto.MatrixStats
 import com.github.wled.usage.dto.PsramSizeStats
+import com.github.wled.usage.dto.ReleaseNameStats
 import com.github.wled.usage.dto.VersionStats
 import com.github.wled.usage.repository.DeviceRepository
 import org.springframework.stereotype.Service
@@ -60,6 +61,15 @@ class StatsService(val deviceRepository: DeviceRepository) {
         return deviceRepository.countDevicesByPsramSize().map {
             PsramSizeStats(
                 psramSize = it["psramSize"] as String,
+                deviceCount = it["deviceCount"] as Long
+            )
+        }
+    }
+    
+    fun getDeviceCountByReleaseName(): List<ReleaseNameStats> {
+        return deviceRepository.countDevicesByReleaseName().map {
+            ReleaseNameStats(
+                releaseName = it["releaseName"] as String,
                 deviceCount = it["deviceCount"] as Long
             )
         }
