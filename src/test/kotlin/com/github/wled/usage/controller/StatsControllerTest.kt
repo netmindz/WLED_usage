@@ -5,6 +5,7 @@ import com.github.wled.usage.dto.CountryStats
 import com.github.wled.usage.dto.FlashSizeStats
 import com.github.wled.usage.dto.MatrixStats
 import com.github.wled.usage.dto.PsramSizeStats
+import com.github.wled.usage.dto.ReleaseNameStats
 import com.github.wled.usage.dto.VersionStats
 import com.github.wled.usage.service.StatsService
 import org.junit.jupiter.api.Test
@@ -240,6 +241,43 @@ class StatsControllerTest {
 
         mockMvc.perform(
             get("/api/stats/psram-size")
+                .contentType(MediaType.APPLICATION_JSON)
+        )
+            .andExpect(status().isOk)
+            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+            .andExpect(jsonPath("$").isEmpty)
+    }
+    
+    @Test
+    fun `getReleaseNameStats should return list of release name statistics`() {
+        val mockStats = listOf(
+            ReleaseNameStats("Hathápp", 200),
+            ReleaseNameStats("Gänansen", 150),
+            ReleaseNameStats("Ingelsull", 100)
+        )
+
+        whenever(statsService.getDeviceCountByReleaseName()).thenReturn(mockStats)
+
+        mockMvc.perform(
+            get("/api/stats/release-name")
+                .contentType(MediaType.APPLICATION_JSON)
+        )
+            .andExpect(status().isOk)
+            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+            .andExpect(jsonPath("$[0].releaseName").value("Hathápp"))
+            .andExpect(jsonPath("$[0].deviceCount").value(200))
+            .andExpect(jsonPath("$[1].releaseName").value("Gänansen"))
+            .andExpect(jsonPath("$[1].deviceCount").value(150))
+            .andExpect(jsonPath("$[2].releaseName").value("Ingelsull"))
+            .andExpect(jsonPath("$[2].deviceCount").value(100))
+    }
+
+    @Test
+    fun `getReleaseNameStats should return empty list when no devices exist`() {
+        whenever(statsService.getDeviceCountByReleaseName()).thenReturn(emptyList())
+
+        mockMvc.perform(
+            get("/api/stats/release-name")
                 .contentType(MediaType.APPLICATION_JSON)
         )
             .andExpect(status().isOk)

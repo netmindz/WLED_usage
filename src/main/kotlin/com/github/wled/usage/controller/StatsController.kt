@@ -5,6 +5,7 @@ import com.github.wled.usage.dto.CountryStats
 import com.github.wled.usage.dto.FlashSizeStats
 import com.github.wled.usage.dto.MatrixStats
 import com.github.wled.usage.dto.PsramSizeStats
+import com.github.wled.usage.dto.ReleaseNameStats
 import com.github.wled.usage.dto.VersionStats
 import com.github.wled.usage.service.StatsService
 import org.springframework.web.bind.annotation.GetMapping
@@ -43,5 +44,10 @@ class StatsController(val statsService: StatsService) {
     @GetMapping("/psram-size")
     fun getPsramSizeStats(): List<PsramSizeStats> {
         return statsService.getDeviceCountByPsramSize()
+    }
+    
+    @GetMapping("/release-name")
+    fun getReleaseNameStats(): List<ReleaseNameStats> {
+        return statsService.getDeviceCountByReleaseName()
     }
 }
