@@ -34,39 +34,6 @@
             margin-bottom: 30px;
         }
         
-        #chart {
-            margin: 20px 0;
-        }
-        
-        .bar {
-            fill: #4CAF50;
-            transition: fill 0.3s;
-        }
-        
-        .bar:hover {
-            fill: #45a049;
-        }
-        
-        .bar-label {
-            font-size: 12px;
-            fill: #333;
-        }
-        
-        .axis-label {
-            font-size: 14px;
-            fill: #333;
-        }
-        
-        .axis path,
-        .axis line {
-            stroke: #ccc;
-        }
-        
-        .axis text {
-            font-size: 12px;
-            fill: #666;
-        }
-        
         .error {
             color: #d32f2f;
             text-align: center;
@@ -80,34 +47,6 @@
             text-align: center;
             padding: 20px;
             color: #666;
-        }
-        
-        .stats-summary {
-            display: flex;
-            justify-content: space-around;
-            margin: 30px 0;
-            flex-wrap: wrap;
-        }
-        
-        .stat-box {
-            text-align: center;
-            padding: 20px;
-            background-color: #f9f9f9;
-            border-radius: 4px;
-            min-width: 150px;
-            margin: 10px;
-        }
-        
-        .stat-number {
-            font-size: 32px;
-            font-weight: bold;
-            color: #4CAF50;
-        }
-        
-        .stat-label {
-            font-size: 14px;
-            color: #666;
-            margin-top: 5px;
         }
         
         .tooltip {
@@ -262,11 +201,6 @@
     <div class="tooltip" id="tooltip"></div>
     
     <script>
-        // Configuration
-        const margin = {top: 20, right: 30, bottom: 100, left: 60};
-        const width = 1140 - margin.left - margin.right;
-        const height = 500 - margin.top - margin.bottom;
-        
         // Tooltip
         const tooltip = d3.select("#tooltip");
         
