@@ -2,6 +2,9 @@ package com.github.wled.usage.controller
 
 import com.github.wled.usage.dto.ChipStats
 import com.github.wled.usage.dto.CountryStats
+import com.github.wled.usage.dto.FlashSizeStats
+import com.github.wled.usage.dto.MatrixStats
+import com.github.wled.usage.dto.PsramSizeStats
 import com.github.wled.usage.dto.VersionStats
 import com.github.wled.usage.service.StatsService
 import org.junit.jupiter.api.Test
@@ -129,6 +132,114 @@ class StatsControllerTest {
 
         mockMvc.perform(
             get("/api/stats/chip")
+                .contentType(MediaType.APPLICATION_JSON)
+        )
+            .andExpect(status().isOk)
+            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+            .andExpect(jsonPath("$").isEmpty)
+    }
+    
+    @Test
+    fun `getMatrixStats should return list of matrix statistics`() {
+        val mockStats = listOf(
+            MatrixStats(false, 200),
+            MatrixStats(true, 100)
+        )
+
+        whenever(statsService.getDeviceCountByIsMatrix()).thenReturn(mockStats)
+
+        mockMvc.perform(
+            get("/api/stats/matrix")
+                .contentType(MediaType.APPLICATION_JSON)
+        )
+            .andExpect(status().isOk)
+            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+            .andExpect(jsonPath("$[0].isMatrix").value(false))
+            .andExpect(jsonPath("$[0].deviceCount").value(200))
+            .andExpect(jsonPath("$[1].isMatrix").value(true))
+            .andExpect(jsonPath("$[1].deviceCount").value(100))
+    }
+
+    @Test
+    fun `getMatrixStats should return empty list when no devices exist`() {
+        whenever(statsService.getDeviceCountByIsMatrix()).thenReturn(emptyList())
+
+        mockMvc.perform(
+            get("/api/stats/matrix")
+                .contentType(MediaType.APPLICATION_JSON)
+        )
+            .andExpect(status().isOk)
+            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+            .andExpect(jsonPath("$").isEmpty)
+    }
+    
+    @Test
+    fun `getFlashSizeStats should return list of flash size statistics`() {
+        val mockStats = listOf(
+            FlashSizeStats("4MB", 200),
+            FlashSizeStats("8MB", 150),
+            FlashSizeStats("16MB", 100)
+        )
+
+        whenever(statsService.getDeviceCountByFlashSize()).thenReturn(mockStats)
+
+        mockMvc.perform(
+            get("/api/stats/flash-size")
+                .contentType(MediaType.APPLICATION_JSON)
+        )
+            .andExpect(status().isOk)
+            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+            .andExpect(jsonPath("$[0].flashSize").value("4MB"))
+            .andExpect(jsonPath("$[0].deviceCount").value(200))
+            .andExpect(jsonPath("$[1].flashSize").value("8MB"))
+            .andExpect(jsonPath("$[1].deviceCount").value(150))
+            .andExpect(jsonPath("$[2].flashSize").value("16MB"))
+            .andExpect(jsonPath("$[2].deviceCount").value(100))
+    }
+
+    @Test
+    fun `getFlashSizeStats should return empty list when no devices exist`() {
+        whenever(statsService.getDeviceCountByFlashSize()).thenReturn(emptyList())
+
+        mockMvc.perform(
+            get("/api/stats/flash-size")
+                .contentType(MediaType.APPLICATION_JSON)
+        )
+            .andExpect(status().isOk)
+            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+            .andExpect(jsonPath("$").isEmpty)
+    }
+    
+    @Test
+    fun `getPsramSizeStats should return list of psram size statistics`() {
+        val mockStats = listOf(
+            PsramSizeStats("2MB", 150),
+            PsramSizeStats("4MB", 100),
+            PsramSizeStats("8MB", 50)
+        )
+
+        whenever(statsService.getDeviceCountByPsramSize()).thenReturn(mockStats)
+
+        mockMvc.perform(
+            get("/api/stats/psram-size")
+                .contentType(MediaType.APPLICATION_JSON)
+        )
+            .andExpect(status().isOk)
+            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+            .andExpect(jsonPath("$[0].psramSize").value("2MB"))
+            .andExpect(jsonPath("$[0].deviceCount").value(150))
+            .andExpect(jsonPath("$[1].psramSize").value("4MB"))
+            .andExpect(jsonPath("$[1].deviceCount").value(100))
+            .andExpect(jsonPath("$[2].psramSize").value("8MB"))
+            .andExpect(jsonPath("$[2].deviceCount").value(50))
+    }
+
+    @Test
+    fun `getPsramSizeStats should return empty list when no devices exist`() {
+        whenever(statsService.getDeviceCountByPsramSize()).thenReturn(emptyList())
+
+        mockMvc.perform(
+            get("/api/stats/psram-size")
                 .contentType(MediaType.APPLICATION_JSON)
         )
             .andExpect(status().isOk)

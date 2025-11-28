@@ -2,6 +2,9 @@ package com.github.wled.usage.service
 
 import com.github.wled.usage.dto.ChipStats
 import com.github.wled.usage.dto.CountryStats
+import com.github.wled.usage.dto.FlashSizeStats
+import com.github.wled.usage.dto.MatrixStats
+import com.github.wled.usage.dto.PsramSizeStats
 import com.github.wled.usage.dto.VersionStats
 import com.github.wled.usage.repository.DeviceRepository
 import org.springframework.stereotype.Service
@@ -30,6 +33,33 @@ class StatsService(val deviceRepository: DeviceRepository) {
         return deviceRepository.countDevicesByChip().map {
             ChipStats(
                 chip = it["chip"] as String,
+                deviceCount = it["deviceCount"] as Long
+            )
+        }
+    }
+    
+    fun getDeviceCountByIsMatrix(): List<MatrixStats> {
+        return deviceRepository.countDevicesByIsMatrix().map {
+            MatrixStats(
+                isMatrix = it["isMatrix"] as Boolean,
+                deviceCount = it["deviceCount"] as Long
+            )
+        }
+    }
+    
+    fun getDeviceCountByFlashSize(): List<FlashSizeStats> {
+        return deviceRepository.countDevicesByFlashSize().map {
+            FlashSizeStats(
+                flashSize = it["flashSize"] as String,
+                deviceCount = it["deviceCount"] as Long
+            )
+        }
+    }
+    
+    fun getDeviceCountByPsramSize(): List<PsramSizeStats> {
+        return deviceRepository.countDevicesByPsramSize().map {
+            PsramSizeStats(
+                psramSize = it["psramSize"] as String,
                 deviceCount = it["deviceCount"] as Long
             )
         }
