@@ -127,6 +127,7 @@ class StatsService(val deviceRepository: DeviceRepository) {
         }
         
         // Create ranges, only including those that have data
+        // Note: First boundary is 0, so first range starts at 1 (LED count 0 is not meaningful)
         val ranges = mutableListOf<IntRange>()
         for (i in 0 until boundaries.size - 1) {
             val rangeStart = boundaries[i] + 1
