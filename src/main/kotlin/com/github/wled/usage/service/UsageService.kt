@@ -7,35 +7,54 @@ import org.springframework.stereotype.Service
 
 @Service
 class UsageService(val deviceRepository: DeviceRepository) {
+
+    companion object {
+        private val ALLOWED_CHARS_REGEX = Regex("[^a-zA-Z0-9._-]")
+
+        fun sanitize(input: String?): String? = input?.replace(ALLOWED_CHARS_REGEX, "")
+    }
+
     fun recordUpgradeEvent(request: UpgradeEventRequest, countryCode: String?) {
-        val device = deviceRepository.findById(request.deviceId).orElse(
+        val sanitizedDeviceId = sanitize(request.deviceId)!!
+        val sanitizedVersion = sanitize(request.version)!!
+        val sanitizedReleaseName = sanitize(request.releaseName)!!
+        val sanitizedChip = sanitize(request.chip)!!
+        val sanitizedBootloaderSHA256 = sanitize(request.bootloaderSHA256)!!
+        val sanitizedBrand = sanitize(request.brand)
+        val sanitizedProduct = sanitize(request.product)
+        val sanitizedFlashSize = sanitize(request.flashSize)
+        val sanitizedPartitionSizes = sanitize(request.partitionSizes)
+        val sanitizedPsramSize = sanitize(request.psramSize)
+        val sanitizedCountryCode = sanitize(countryCode)
+
+        val device = deviceRepository.findById(sanitizedDeviceId).orElse(
             Device(
-                id = request.deviceId,
-                version = request.version,
-                releaseName = request.releaseName,
-                chip = request.chip,
+                id = sanitizedDeviceId,
+                version = sanitizedVersion,
+                releaseName = sanitizedReleaseName,
+                chip = sanitizedChip,
                 ledCount = request.ledCount,
                 isMatrix = request.isMatrix,
-                bootloaderSHA256 = request.bootloaderSHA256,
-                brand = request.brand,
-                product = request.product,
-                flashSize = request.flashSize,
-                partitionSizes = request.partitionSizes,
-                psramSize = request.psramSize,
-                countryCode = countryCode
+                bootloaderSHA256 = sanitizedBootloaderSHA256,
+                brand = sanitizedBrand,
+                product = sanitizedProduct,
+                flashSize = sanitizedFlashSize,
+                partitionSizes = sanitizedPartitionSizes,
+                psramSize = sanitizedPsramSize,
+                countryCode = sanitizedCountryCode
             )
         )
-        device.releaseName = request.releaseName
-        device.version = request.version
+        device.releaseName = sanitizedReleaseName
+        device.version = sanitizedVersion
         device.ledCount = request.ledCount
         device.isMatrix = request.isMatrix
-        device.bootloaderSHA256 = request.bootloaderSHA256
-        device.brand = request.brand
-        device.product = request.product
-        device.flashSize = request.flashSize
-        device.partitionSizes = request.partitionSizes
-        device.psramSize = request.psramSize
-        device.countryCode = countryCode
+        device.bootloaderSHA256 = sanitizedBootloaderSHA256
+        device.brand = sanitizedBrand
+        device.product = sanitizedProduct
+        device.flashSize = sanitizedFlashSize
+        device.partitionSizes = sanitizedPartitionSizes
+        device.psramSize = sanitizedPsramSize
+        device.countryCode = sanitizedCountryCode
         deviceRepository.save(device)
     }
 
