@@ -113,6 +113,12 @@
             margin: 20px 0;
         }
         
+        #led-count-chart {
+            display: flex;
+            justify-content: center;
+            margin: 20px 0;
+        }
+        
         .pie-slice {
             stroke: white;
             stroke-width: 2px;
@@ -201,6 +207,14 @@
             <div id="release-name-error" class="error" style="display: none;"></div>
             <div id="release-name-chart"></div>
             <div id="release-name-legend" class="legend"></div>
+        </div>
+        
+        <div class="chart-section">
+            <div class="chart-title">Device Distribution by LED Count</div>
+            <div id="led-count-loading" class="loading">Loading LED count data...</div>
+            <div id="led-count-error" class="error" style="display: none;"></div>
+            <div id="led-count-chart"></div>
+            <div id="led-count-legend" class="legend"></div>
         </div>
         
     </div>
@@ -884,6 +898,119 @@
                 
                 item.append("span")
                     .text(`${d.releaseName} (${d.deviceCount.toLocaleString()})`);
+            });
+        }
+        
+        // Fetch and display LED count range data
+        fetch('/api/stats/led-count')
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                document.getElementById('led-count-loading').style.display = 'none';
+                
+                if (!data || data.length === 0) {
+                    document.getElementById('led-count-error').textContent = 'No LED count data available';
+                    document.getElementById('led-count-error').style.display = 'block';
+                    return;
+                }
+                
+                // Create LED count pie chart
+                createLedCountPieChart(data);
+            })
+            .catch(error => {
+                console.error('Error fetching LED count data:', error);
+                document.getElementById('led-count-loading').style.display = 'none';
+                document.getElementById('led-count-error').textContent = 'Error loading LED count data: ' + error.message;
+                document.getElementById('led-count-error').style.display = 'block';
+            });
+        
+        function createLedCountPieChart(data) {
+            // Limit to top 10 ranges for better visualization
+            const topData = data.slice(0, 10);
+            
+            // If there are more ranges, group the rest as "Others"
+            if (data.length > 10) {
+                const othersCount = data.slice(10).reduce((sum, d) => sum + d.deviceCount, 0);
+                if (othersCount > 0) {
+                    topData.push({range: 'Others', deviceCount: othersCount});
+                }
+            }
+            
+            const pieWidth = 400;
+            const pieHeight = 400;
+            const radius = Math.min(pieWidth, pieHeight) / 2;
+            
+            // Create SVG
+            const svg = d3.select("#led-count-chart")
+                .append("svg")
+                .attr("width", pieWidth)
+                .attr("height", pieHeight)
+                .append("g")
+                .attr("transform", `translate(${pieWidth / 2},${pieHeight / 2})`);
+            
+            // Create pie layout
+            const pie = d3.pie()
+                .value(d => d.deviceCount)
+                .sort(null);
+            
+            // Create arc
+            const arc = d3.arc()
+                .innerRadius(0)
+                .outerRadius(radius - 10);
+            
+            // Create slices
+            const slices = svg.selectAll(".pie-slice")
+                .data(pie(topData))
+                .enter()
+                .append("g")
+                .attr("class", "slice");
+            
+            slices.append("path")
+                .attr("class", "pie-slice")
+                .attr("d", arc)
+                .attr("fill", (d, i) => colorScale(i))
+                .on("mouseover", function(event, d) {
+                    const percentage = ((d.data.deviceCount / d3.sum(topData, d => d.deviceCount)) * 100).toFixed(1);
+                    tooltip.style("opacity", 1)
+                        .html(`<strong>${d.data.range} LEDs</strong><br/>Devices: ${d.data.deviceCount.toLocaleString()}<br/>Percentage: ${percentage}%`)
+                        .style("left", (event.pageX + 10) + "px")
+                        .style("top", (event.pageY - 10) + "px");
+                })
+                .on("mouseout", function() {
+                    tooltip.style("opacity", 0);
+                });
+            
+            // Add percentage labels on slices
+            slices.append("text")
+                .attr("class", "pie-label")
+                .attr("transform", d => {
+                    const pos = arc.centroid(d);
+                    return `translate(${pos})`;
+                })
+                .attr("text-anchor", "middle")
+                .style("fill", "white")
+                .style("font-weight", "bold")
+                .text(d => {
+                    const percentage = ((d.data.deviceCount / d3.sum(topData, d => d.deviceCount)) * 100);
+                    return percentage > 5 ? `${percentage.toFixed(1)}%` : '';
+                });
+            
+            // Create legend
+            const legend = d3.select("#led-count-legend");
+            topData.forEach((d, i) => {
+                const item = legend.append("div")
+                    .attr("class", "legend-item");
+                
+                item.append("div")
+                    .attr("class", "legend-color")
+                    .style("background-color", colorScale(i));
+                
+                item.append("span")
+                    .text(`${d.range} LEDs (${d.deviceCount.toLocaleString()})`);
             });
         }
         

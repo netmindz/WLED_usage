@@ -25,4 +25,7 @@ interface DeviceRepository : CrudRepository<Device, String> {
     
     @Query("SELECT d.releaseName as releaseName, COUNT(d) as deviceCount FROM Device d WHERE d.releaseName IS NOT NULL GROUP BY d.releaseName ORDER BY COUNT(d) DESC")
     fun countDevicesByReleaseName(): List<Map<String, Any>>
+
+    @Query("SELECT d.ledCount as ledCount, COUNT(d) as deviceCount FROM Device d GROUP BY d.ledCount ORDER BY d.ledCount ASC")
+    fun countDevicesByLedCount(): List<Map<String, Any>>
 }
