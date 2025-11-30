@@ -11,21 +11,23 @@ class UsageService(val deviceRepository: DeviceRepository) {
     companion object {
         private val ALLOWED_CHARS_REGEX = Regex("[^a-zA-Z0-9._-]")
 
-        fun sanitize(input: String?): String? = input?.replace(ALLOWED_CHARS_REGEX, "")
+        fun sanitize(input: String): String = input.replace(ALLOWED_CHARS_REGEX, "")
+
+        fun sanitizeNullable(input: String?): String? = input?.replace(ALLOWED_CHARS_REGEX, "")
     }
 
     fun recordUpgradeEvent(request: UpgradeEventRequest, countryCode: String?) {
-        val sanitizedDeviceId = sanitize(request.deviceId)!!
-        val sanitizedVersion = sanitize(request.version)!!
-        val sanitizedReleaseName = sanitize(request.releaseName)!!
-        val sanitizedChip = sanitize(request.chip)!!
-        val sanitizedBootloaderSHA256 = sanitize(request.bootloaderSHA256)!!
-        val sanitizedBrand = sanitize(request.brand)
-        val sanitizedProduct = sanitize(request.product)
-        val sanitizedFlashSize = sanitize(request.flashSize)
-        val sanitizedPartitionSizes = sanitize(request.partitionSizes)
-        val sanitizedPsramSize = sanitize(request.psramSize)
-        val sanitizedCountryCode = sanitize(countryCode)
+        val sanitizedDeviceId = sanitize(request.deviceId)
+        val sanitizedVersion = sanitize(request.version)
+        val sanitizedReleaseName = sanitize(request.releaseName)
+        val sanitizedChip = sanitize(request.chip)
+        val sanitizedBootloaderSHA256 = sanitize(request.bootloaderSHA256)
+        val sanitizedBrand = sanitizeNullable(request.brand)
+        val sanitizedProduct = sanitizeNullable(request.product)
+        val sanitizedFlashSize = sanitizeNullable(request.flashSize)
+        val sanitizedPartitionSizes = sanitizeNullable(request.partitionSizes)
+        val sanitizedPsramSize = sanitizeNullable(request.psramSize)
+        val sanitizedCountryCode = sanitizeNullable(countryCode)
 
         val device = deviceRepository.findById(sanitizedDeviceId).orElse(
             Device(

@@ -54,8 +54,8 @@ class UsageServiceTest {
     }
 
     @Test
-    fun `sanitize should handle null input`() {
-        assertNull(UsageService.sanitize(null))
+    fun `sanitizeNullable should handle null input`() {
+        assertNull(UsageService.sanitizeNullable(null))
     }
 
     @Test
