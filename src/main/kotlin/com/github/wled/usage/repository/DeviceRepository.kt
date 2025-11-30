@@ -14,7 +14,7 @@ interface DeviceRepository : CrudRepository<Device, String> {
     @Query("SELECT d.chip as chip, COUNT(d) as deviceCount FROM Device d WHERE d.chip IS NOT NULL GROUP BY d.chip ORDER BY COUNT(d) DESC")
     fun countDevicesByChip(): List<Map<String, Any>>
     
-    @Query("SELECT d.isMatrix as isMatrix, COUNT(d) as deviceCount FROM Device d GROUP BY d.isMatrix ORDER BY COUNT(d) DESC")
+    @Query("SELECT d.isMatrix as isMatrix, COUNT(d) as deviceCount FROM Device d WHERE d.isMatrix IS NOT NULL GROUP BY d.isMatrix ORDER BY COUNT(d) DESC")
     fun countDevicesByIsMatrix(): List<Map<String, Any>>
     
     @Query("SELECT d.flashSize as flashSize, COUNT(d) as deviceCount FROM Device d WHERE d.flashSize IS NOT NULL GROUP BY d.flashSize ORDER BY COUNT(d) DESC")
@@ -26,6 +26,6 @@ interface DeviceRepository : CrudRepository<Device, String> {
     @Query("SELECT d.releaseName as releaseName, COUNT(d) as deviceCount FROM Device d WHERE d.releaseName IS NOT NULL GROUP BY d.releaseName ORDER BY COUNT(d) DESC")
     fun countDevicesByReleaseName(): List<Map<String, Any>>
 
-    @Query("SELECT d.ledCount as ledCount, COUNT(d) as deviceCount FROM Device d GROUP BY d.ledCount ORDER BY d.ledCount ASC")
+    @Query("SELECT d.ledCount as ledCount, COUNT(d) as deviceCount FROM Device d WHERE d.ledCount IS NOT NULL GROUP BY d.ledCount ORDER BY d.ledCount ASC")
     fun countDevicesByLedCount(): List<Map<String, Any>>
 }

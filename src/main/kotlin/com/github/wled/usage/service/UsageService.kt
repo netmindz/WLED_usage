@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service
 class UsageService(val deviceRepository: DeviceRepository) {
 
     companion object {
+        private const val DEFAULT_LED_COUNT = 30
         private val ALLOWED_CHARS_REGEX = Regex("[^a-zA-Z0-9._-]")
 
         fun sanitize(input: String): String = input.replace(ALLOWED_CHARS_REGEX, "")
@@ -16,7 +17,25 @@ class UsageService(val deviceRepository: DeviceRepository) {
         fun sanitizeNullable(input: String?): String? = input?.replace(ALLOWED_CHARS_REGEX, "")
     }
 
+    /**
+     * Detects if this is a fresh install based on previousVersion and ledCount.
+     * A fresh install is detected when:
+     * - previousVersion is empty, null, or equals the current version
+     * - AND ledCount equals 30 (the default value)
+     */
+    private fun isFreshInstall(request: UpgradeEventRequest): Boolean {
+        val previousVersionIsEmpty = request.previousVersion.isNullOrBlank() ||
+                request.previousVersion == request.version
+        return previousVersionIsEmpty && request.ledCount == DEFAULT_LED_COUNT
+    }
+
     fun recordUpgradeEvent(request: UpgradeEventRequest, countryCode: String?) {
+        val freshInstall = isFreshInstall(request)
+
+        // For fresh installs, set ledCount and isMatrix to null since they represent default values
+        val ledCount = if (freshInstall) null else request.ledCount
+        val isMatrix = if (freshInstall) null else request.isMatrix
+
         val sanitizedDeviceId = sanitize(request.deviceId)
         val sanitizedVersion = sanitize(request.version)
         val sanitizedReleaseName = sanitize(request.releaseName)
@@ -35,8 +54,8 @@ class UsageService(val deviceRepository: DeviceRepository) {
                 version = sanitizedVersion,
                 releaseName = sanitizedReleaseName,
                 chip = sanitizedChip,
-                ledCount = request.ledCount,
-                isMatrix = request.isMatrix,
+                ledCount = ledCount,
+                isMatrix = isMatrix,
                 bootloaderSHA256 = sanitizedBootloaderSHA256,
                 brand = sanitizedBrand,
                 product = sanitizedProduct,
@@ -48,8 +67,8 @@ class UsageService(val deviceRepository: DeviceRepository) {
         )
         device.releaseName = sanitizedReleaseName
         device.version = sanitizedVersion
-        device.ledCount = request.ledCount
-        device.isMatrix = request.isMatrix
+        device.ledCount = ledCount
+        device.isMatrix = isMatrix
         device.bootloaderSHA256 = sanitizedBootloaderSHA256
         device.brand = sanitizedBrand
         device.product = sanitizedProduct
