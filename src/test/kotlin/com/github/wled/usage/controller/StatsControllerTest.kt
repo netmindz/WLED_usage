@@ -3,6 +3,7 @@ package com.github.wled.usage.controller
 import com.github.wled.usage.dto.ChipStats
 import com.github.wled.usage.dto.CountryStats
 import com.github.wled.usage.dto.FlashSizeStats
+import com.github.wled.usage.dto.LedCountRangeStats
 import com.github.wled.usage.dto.MatrixStats
 import com.github.wled.usage.dto.PsramSizeStats
 import com.github.wled.usage.dto.ReleaseNameStats
@@ -278,6 +279,49 @@ class StatsControllerTest {
 
         mockMvc.perform(
             get("/api/stats/release-name")
+                .contentType(MediaType.APPLICATION_JSON)
+        )
+            .andExpect(status().isOk)
+            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+            .andExpect(jsonPath("$").isEmpty)
+    }
+    
+    @Test
+    fun `getLedCountRangeStats should return list of LED count range statistics`() {
+        val mockStats = listOf(
+            LedCountRangeStats("1-10", 50),
+            LedCountRangeStats("11-50", 120),
+            LedCountRangeStats("51-100", 200),
+            LedCountRangeStats("101-250", 150),
+            LedCountRangeStats("251-500", 80)
+        )
+
+        whenever(statsService.getDeviceCountByLedCountRange()).thenReturn(mockStats)
+
+        mockMvc.perform(
+            get("/api/stats/led-count")
+                .contentType(MediaType.APPLICATION_JSON)
+        )
+            .andExpect(status().isOk)
+            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+            .andExpect(jsonPath("$[0].range").value("1-10"))
+            .andExpect(jsonPath("$[0].deviceCount").value(50))
+            .andExpect(jsonPath("$[1].range").value("11-50"))
+            .andExpect(jsonPath("$[1].deviceCount").value(120))
+            .andExpect(jsonPath("$[2].range").value("51-100"))
+            .andExpect(jsonPath("$[2].deviceCount").value(200))
+            .andExpect(jsonPath("$[3].range").value("101-250"))
+            .andExpect(jsonPath("$[3].deviceCount").value(150))
+            .andExpect(jsonPath("$[4].range").value("251-500"))
+            .andExpect(jsonPath("$[4].deviceCount").value(80))
+    }
+
+    @Test
+    fun `getLedCountRangeStats should return empty list when no devices exist`() {
+        whenever(statsService.getDeviceCountByLedCountRange()).thenReturn(emptyList())
+
+        mockMvc.perform(
+            get("/api/stats/led-count")
                 .contentType(MediaType.APPLICATION_JSON)
         )
             .andExpect(status().isOk)

@@ -3,6 +3,7 @@ package com.github.wled.usage.controller
 import com.github.wled.usage.dto.ChipStats
 import com.github.wled.usage.dto.CountryStats
 import com.github.wled.usage.dto.FlashSizeStats
+import com.github.wled.usage.dto.LedCountRangeStats
 import com.github.wled.usage.dto.MatrixStats
 import com.github.wled.usage.dto.PsramSizeStats
 import com.github.wled.usage.dto.ReleaseNameStats
@@ -49,5 +50,10 @@ class StatsController(val statsService: StatsService) {
     @GetMapping("/release-name")
     fun getReleaseNameStats(): List<ReleaseNameStats> {
         return statsService.getDeviceCountByReleaseName()
+    }
+    
+    @GetMapping("/led-count")
+    fun getLedCountRangeStats(): List<LedCountRangeStats> {
+        return statsService.getDeviceCountByLedCountRange()
     }
 }
