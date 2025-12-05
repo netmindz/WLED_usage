@@ -99,4 +99,28 @@ class StatsServiceTest {
         val range11to50 = result.find { it.range == "11-50" }
         assertEquals(50L, range11to50?.deviceCount) // 10 + 15 + 25 = 50
     }
+
+    @Test
+    fun `getDeviceCountByPsramSize should return devices with PSRAM sizes including None for devices without PSRAM`() {
+        val mockData = listOf(
+            mapOf("psramSize" to "2MB", "deviceCount" to 100L),
+            mapOf("psramSize" to "4MB", "deviceCount" to 50L),
+            mapOf("psramSize" to "None", "deviceCount" to 200L)
+        )
+        
+        whenever(deviceRepository.countDevicesByPsramSize()).thenReturn(mockData)
+        
+        val result = statsService.getDeviceCountByPsramSize()
+        
+        assertEquals(3, result.size)
+        
+        val psram2mb = result.find { it.psramSize == "2MB" }
+        assertEquals(100L, psram2mb?.deviceCount)
+        
+        val psram4mb = result.find { it.psramSize == "4MB" }
+        assertEquals(50L, psram4mb?.deviceCount)
+        
+        val psramNone = result.find { it.psramSize == "None" }
+        assertEquals(200L, psramNone?.deviceCount)
+    }
 }
