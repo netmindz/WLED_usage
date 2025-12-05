@@ -217,7 +217,7 @@ class StatsControllerTest {
         val mockStats = listOf(
             PsramSizeStats("2MB", 150),
             PsramSizeStats("4MB", 100),
-            PsramSizeStats("8MB", 50)
+            PsramSizeStats("None", 50)
         )
 
         whenever(statsService.getDeviceCountByPsramSize()).thenReturn(mockStats)
@@ -232,7 +232,7 @@ class StatsControllerTest {
             .andExpect(jsonPath("$[0].deviceCount").value(150))
             .andExpect(jsonPath("$[1].psramSize").value("4MB"))
             .andExpect(jsonPath("$[1].deviceCount").value(100))
-            .andExpect(jsonPath("$[2].psramSize").value("8MB"))
+            .andExpect(jsonPath("$[2].psramSize").value("None"))
             .andExpect(jsonPath("$[2].deviceCount").value(50))
     }
 

@@ -20,7 +20,7 @@ interface DeviceRepository : CrudRepository<Device, String> {
     @Query("SELECT d.flashSize as flashSize, COUNT(d) as deviceCount FROM Device d WHERE d.flashSize IS NOT NULL GROUP BY d.flashSize ORDER BY COUNT(d) DESC")
     fun countDevicesByFlashSize(): List<Map<String, Any>>
     
-    @Query("SELECT d.psramSize as psramSize, COUNT(d) as deviceCount FROM Device d WHERE d.psramSize IS NOT NULL GROUP BY d.psramSize ORDER BY COUNT(d) DESC")
+    @Query("SELECT COALESCE(d.psramSize, 'None') as psramSize, COUNT(d) as deviceCount FROM Device d GROUP BY COALESCE(d.psramSize, 'None') ORDER BY COUNT(d) DESC")
     fun countDevicesByPsramSize(): List<Map<String, Any>>
     
     @Query("SELECT d.releaseName as releaseName, COUNT(d) as deviceCount FROM Device d WHERE d.releaseName IS NOT NULL GROUP BY d.releaseName ORDER BY COUNT(d) DESC")
