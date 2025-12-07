@@ -15,4 +15,5 @@ data class UpgradeEventRequest(
     val flashSize: String? = null,
     val partitionSizes: String? = null,
     val psramSize: String? = null,
+    val psramPresent: Boolean? = null,
 )

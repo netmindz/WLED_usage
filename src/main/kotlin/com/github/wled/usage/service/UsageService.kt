@@ -45,6 +45,7 @@ class UsageService(val deviceRepository: DeviceRepository) {
                 flashSize = request.flashSize,
                 partitionSizes = request.partitionSizes,
                 psramSize = request.psramSize,
+                psramPresent = request.psramPresent,
                 countryCode = countryCode
             )
         )
@@ -58,6 +59,7 @@ class UsageService(val deviceRepository: DeviceRepository) {
         device.flashSize = request.flashSize
         device.partitionSizes = request.partitionSizes
         device.psramSize = request.psramSize
+        device.psramPresent = request.psramPresent
         device.countryCode = countryCode
         deviceRepository.save(device)
     }
