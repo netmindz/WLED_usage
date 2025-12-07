@@ -81,4 +81,34 @@ class UsageControllerTest {
 
         assertThat(requestCaptor.firstValue.deviceId).isEqualTo("test-device-456")
     }
+
+    @Test
+    fun `postUpgradeEvent should handle psramPresent field`() {
+        val requestBody = """
+            {
+                "deviceId": "test-device-789",
+                "version": "1.0.0",
+                "previousVersion": "0.9.0",
+                "releaseName": "stable",
+                "chip": "ESP32",
+                "ledCount": 100,
+                "isMatrix": false,
+                "bootloaderSHA256": "ghi789",
+                "psramPresent": true
+            }
+        """.trimIndent()
+
+        mockMvc.perform(
+            post("/api/usage/upgrade")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(requestBody)
+        )
+            .andExpect(status().isOk)
+
+        val requestCaptor = argumentCaptor<UpgradeEventRequest>()
+        verify(usageService).recordUpgradeEvent(requestCaptor.capture(), org.mockito.kotlin.isNull())
+
+        assertThat(requestCaptor.firstValue.deviceId).isEqualTo("test-device-789")
+        assertThat(requestCaptor.firstValue.psramPresent).isEqualTo(true)
+    }
 }
