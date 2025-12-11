@@ -2,11 +2,16 @@ package com.github.wled.usage.service
 
 import com.github.wled.usage.dto.UpgradeEventRequest
 import com.github.wled.usage.entity.Device
+import com.github.wled.usage.entity.UpgradeEvent
 import com.github.wled.usage.repository.DeviceRepository
+import com.github.wled.usage.repository.UpgradeEventRepository
 import org.springframework.stereotype.Service
 
 @Service
-class UsageService(val deviceRepository: DeviceRepository) {
+class UsageService(
+    val deviceRepository: DeviceRepository,
+    val upgradeEventRepository: UpgradeEventRepository
+) {
     
     companion object {
         private const val DEFAULT_LED_COUNT = 30
@@ -31,7 +36,10 @@ class UsageService(val deviceRepository: DeviceRepository) {
         val ledCount = if (freshInstall) null else request.ledCount
         val isMatrix = if (freshInstall) null else request.isMatrix
         
-        val device = deviceRepository.findById(request.deviceId).orElse(
+        val existingDevice = deviceRepository.findById(request.deviceId)
+        val isNewDevice = existingDevice.isEmpty
+        
+        val device = existingDevice.orElse(
             Device(
                 id = request.deviceId,
                 version = request.version,
@@ -49,6 +57,18 @@ class UsageService(val deviceRepository: DeviceRepository) {
                 countryCode = countryCode
             )
         )
+        
+        // Create UpgradeEvent only when updating an existing device
+        if (!isNewDevice) {
+            val oldVersion = device.version
+            val upgradeEvent = UpgradeEvent(
+                device = device,
+                oldVersion = oldVersion,
+                newVersion = request.version
+            )
+            upgradeEventRepository.save(upgradeEvent)
+        }
+        
         device.releaseName = request.releaseName
         device.version = request.version
         device.ledCount = ledCount
