@@ -101,7 +101,7 @@ class StatsServiceTest {
     }
 
     @Test
-    fun `getDeviceCountByPsramSize should return devices with PSRAM sizes including None for devices without PSRAM`() {
+    fun `getDeviceCountByPsramSize should return devices with PSRAM sizes including None for devices with psram_present false`() {
         val mockData = listOf(
             mapOf("psramSize" to "2MB", "deviceCount" to 100L),
             mapOf("psramSize" to "4MB", "deviceCount" to 50L),
