@@ -1,0 +1,2 @@
+ALTER TABLE device ADD COLUMN created DATETIME;
+ALTER TABLE device ADD COLUMN last_update DATETIME;

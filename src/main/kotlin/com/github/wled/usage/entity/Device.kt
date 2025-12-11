@@ -2,6 +2,9 @@ package com.github.wled.usage.entity
 
 import jakarta.persistence.Entity
 import jakarta.persistence.Id
+import org.hibernate.annotations.CreationTimestamp
+import org.hibernate.annotations.UpdateTimestamp
+import java.time.LocalDateTime
 
 @Entity
 data class Device(
@@ -20,4 +23,10 @@ data class Device(
     var psramSize: String? = null,
     var psramPresent: Boolean? = null,
     var countryCode: String? = null,
+    
+    @CreationTimestamp
+    val created: LocalDateTime? = null,
+    
+    @UpdateTimestamp
+    var lastUpdate: LocalDateTime? = null
 )
