@@ -18,5 +18,5 @@ data class UpgradeEvent(
     val newVersion: String,
     
     @CreationTimestamp
-    val created: LocalDateTime? = null,
+    val created: LocalDateTime? = null
 )

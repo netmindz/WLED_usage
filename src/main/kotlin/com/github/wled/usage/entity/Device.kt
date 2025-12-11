@@ -28,5 +28,5 @@ data class Device(
     val created: LocalDateTime? = null,
     
     @UpdateTimestamp
-    var lastUpdate: LocalDateTime? = null,
+    var lastUpdate: LocalDateTime? = null
 )
