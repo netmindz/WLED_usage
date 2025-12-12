@@ -1,0 +1,1 @@
+ALTER TABLE device ADD COLUMN repo VARCHAR(255);

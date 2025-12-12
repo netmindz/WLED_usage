@@ -111,4 +111,34 @@ class UsageControllerTest {
         assertThat(requestCaptor.firstValue.deviceId).isEqualTo("test-device-789")
         assertThat(requestCaptor.firstValue.psramPresent).isEqualTo(true)
     }
+
+    @Test
+    fun `postUpgradeEvent should handle repo field`() {
+        val requestBody = """
+            {
+                "deviceId": "test-device-999",
+                "version": "1.0.0",
+                "previousVersion": "0.9.0",
+                "releaseName": "stable",
+                "chip": "ESP32",
+                "ledCount": 100,
+                "isMatrix": false,
+                "bootloaderSHA256": "jkl999",
+                "repo": "custom-repo"
+            }
+        """.trimIndent()
+
+        mockMvc.perform(
+            post("/api/usage/upgrade")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(requestBody)
+        )
+            .andExpect(status().isOk)
+
+        val requestCaptor = argumentCaptor<UpgradeEventRequest>()
+        verify(usageService).recordUpgradeEvent(requestCaptor.capture(), org.mockito.kotlin.isNull())
+
+        assertThat(requestCaptor.firstValue.deviceId).isEqualTo("test-device-999")
+        assertThat(requestCaptor.firstValue.repo).isEqualTo("custom-repo")
+    }
 }

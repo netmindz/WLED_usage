@@ -23,6 +23,7 @@ data class Device(
     var psramSize: String? = null,
     var psramPresent: Boolean? = null,
     var countryCode: String? = null,
+    var repo: String? = null,
     
     @CreationTimestamp
     val created: LocalDateTime? = null,
