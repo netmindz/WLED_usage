@@ -16,4 +16,5 @@ data class UpgradeEventRequest(
     val partitionSizes: String? = null,
     val psramSize: String? = null,
     val psramPresent: Boolean? = null,
+    val repo: String? = null,
 )

@@ -54,7 +54,8 @@ class UsageService(
                 partitionSizes = request.partitionSizes,
                 psramSize = request.psramSize,
                 psramPresent = request.psramPresent,
-                countryCode = countryCode
+                countryCode = countryCode,
+                repo = request.repo
             )
         )
         
@@ -81,6 +82,7 @@ class UsageService(
         device.psramSize = request.psramSize
         device.psramPresent = request.psramPresent
         device.countryCode = countryCode
+        device.repo = request.repo
         deviceRepository.save(device)
     }
 
