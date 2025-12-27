@@ -20,6 +20,15 @@ class CrashService(
     val deviceRepository: DeviceRepository
 ) {
     
+    companion object {
+        /**
+         * Maximum distance in bytes between a symbol address and the target address
+         * to be considered a valid match. 4096 bytes (0x1000) is chosen as a reasonable
+         * threshold for typical function sizes in embedded systems.
+         */
+        private const val MAX_SYMBOL_DISTANCE = 0x1000
+    }
+    
     /**
      * Process a crash report from an ESP32 device.
      * Creates or updates a unique crash report and records this instance.
@@ -150,7 +159,8 @@ class CrashService(
             
             for (line in lines) {
                 // Try to find address patterns in the map file
-                val mapAddressPattern = Regex("0x[0-9a-fA-F]+|[0-9a-fA-F]{8}")
+                // Match either 0x-prefixed or plain 8-character hex addresses
+                val mapAddressPattern = Regex("0x[0-9a-fA-F]{8}|[0-9a-fA-F]{8}")
                 val match = mapAddressPattern.find(line) ?: continue
                 
                 val mapAddress = try {
@@ -177,7 +187,7 @@ class CrashService(
                 }
             }
             
-            return if (closestSymbol != null && closestDistance < 0x1000) {
+            return if (closestSymbol != null && closestDistance < MAX_SYMBOL_DISTANCE) {
                 "$closestSymbol+0x${closestDistance.toString(16)}"
             } else {
                 null
