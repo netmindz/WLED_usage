@@ -93,7 +93,7 @@ class CrashService(
      */
     private fun generateStackTraceHash(stackTrace: String): String {
         val digest = MessageDigest.getInstance("SHA-256")
-        val hashBytes = digest.digest(stackTrace.toByteArray())
+        val hashBytes = digest.digest(stackTrace.toByteArray(Charsets.UTF_8))
         return hashBytes.joinToString("") { "%02x".format(it) }
     }
     
