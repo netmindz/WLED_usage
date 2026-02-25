@@ -124,6 +124,18 @@ class StatsService(
         }
     }
 
+    fun getRunningVersionsStats(): List<VersionWeeklyStats> {
+        val since = LocalDateTime.now().minusMonths(3)
+
+        return deviceRepository.countRunningVersionsByWeek(since).map {
+            VersionWeeklyStats(
+                week = it["weekStart"].toString(),
+                version = it["version"] as String,
+                count = (it["deviceCount"] as Number).toLong()
+            )
+        }
+    }
+
     fun getVersionOverTimeStats(): List<VersionWeeklyStats> {
         val since = LocalDateTime.now().minusMonths(3)
 

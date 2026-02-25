@@ -410,4 +410,44 @@ class StatsControllerTest {
             .andExpect(content().contentType(MediaType.APPLICATION_JSON))
             .andExpect(jsonPath("$").isEmpty)
     }
+
+    @Test
+    fun `getRunningVersionsStats should return weekly running version data`() {
+        val mockStats = listOf(
+            VersionWeeklyStats("2026-01-05", "0.13.3", 5),
+            VersionWeeklyStats("2026-01-05", "0.14.0", 10),
+            VersionWeeklyStats("2026-01-12", "0.14.0", 15)
+        )
+
+        whenever(statsService.getRunningVersionsStats()).thenReturn(mockStats)
+
+        mockMvc.perform(
+            get("/api/stats/running-versions")
+                .contentType(MediaType.APPLICATION_JSON)
+        )
+            .andExpect(status().isOk)
+            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+            .andExpect(jsonPath("$[0].week").value("2026-01-05"))
+            .andExpect(jsonPath("$[0].version").value("0.13.3"))
+            .andExpect(jsonPath("$[0].count").value(5))
+            .andExpect(jsonPath("$[1].week").value("2026-01-05"))
+            .andExpect(jsonPath("$[1].version").value("0.14.0"))
+            .andExpect(jsonPath("$[1].count").value(10))
+            .andExpect(jsonPath("$[2].week").value("2026-01-12"))
+            .andExpect(jsonPath("$[2].version").value("0.14.0"))
+            .andExpect(jsonPath("$[2].count").value(15))
+    }
+
+    @Test
+    fun `getRunningVersionsStats should return empty list when no data exists`() {
+        whenever(statsService.getRunningVersionsStats()).thenReturn(emptyList())
+
+        mockMvc.perform(
+            get("/api/stats/running-versions")
+                .contentType(MediaType.APPLICATION_JSON)
+        )
+            .andExpect(status().isOk)
+            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+            .andExpect(jsonPath("$").isEmpty)
+    }
 }
