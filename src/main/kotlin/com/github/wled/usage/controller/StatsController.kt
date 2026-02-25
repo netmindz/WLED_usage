@@ -9,6 +9,7 @@ import com.github.wled.usage.dto.PsramSizeStats
 import com.github.wled.usage.dto.ReleaseNameStats
 import com.github.wled.usage.dto.UpgradeVsInstallationWeeklyStats
 import com.github.wled.usage.dto.VersionStats
+import com.github.wled.usage.dto.VersionWeeklyStats
 import com.github.wled.usage.service.StatsService
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.RequestMapping
@@ -61,5 +62,10 @@ class StatsController(val statsService: StatsService) {
     @GetMapping("/upgrade-vs-installation")
     fun getUpgradeVsInstallationStats(): List<UpgradeVsInstallationWeeklyStats> {
         return statsService.getUpgradeVsInstallationStats()
+    }
+
+    @GetMapping("/version-over-time")
+    fun getVersionOverTimeStats(): List<VersionWeeklyStats> {
+        return statsService.getVersionOverTimeStats()
     }
 }
