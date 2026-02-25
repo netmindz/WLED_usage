@@ -7,6 +7,9 @@ import java.time.LocalDateTime
 
 interface UpgradeEventRepository : CrudRepository<UpgradeEvent, Long> {
 
+    @Query("SELECT ue FROM UpgradeEvent ue JOIN FETCH ue.device ORDER BY ue.device.id, ue.created")
+    fun findAllWithDevice(): List<UpgradeEvent>
+
     @Query(
         value = "SELECT DATE(DATE_SUB(created, INTERVAL WEEKDAY(created) DAY)) as weekStart, COUNT(*) as eventCount FROM upgrade_event WHERE created >= :since GROUP BY weekStart ORDER BY weekStart",
         nativeQuery = true
