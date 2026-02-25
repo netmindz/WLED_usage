@@ -223,4 +223,41 @@ class StatsServiceTest {
         assertEquals("0.14.0", result[2].version)
         assertEquals(22L, result[2].count) // 15 upgrades + 7 new installations
     }
+
+    @Test
+    fun `getRunningVersionsStats should return empty list when no data exists`() {
+        whenever(deviceRepository.countRunningVersionsByWeek(any())).thenReturn(emptyList())
+
+        val result = statsService.getRunningVersionsStats()
+
+        assertTrue(result.isEmpty())
+    }
+
+    @Test
+    fun `getRunningVersionsStats should return version data grouped by week based on most recent upgrade event`() {
+        val mockData = listOf(
+            mapOf("weekStart" to "2026-01-05", "version" to "0.13.3", "deviceCount" to 5L),
+            mapOf("weekStart" to "2026-01-05", "version" to "0.14.0", "deviceCount" to 10L),
+            mapOf("weekStart" to "2026-01-12", "version" to "0.13.3", "deviceCount" to 3L),
+            mapOf("weekStart" to "2026-01-12", "version" to "0.14.0", "deviceCount" to 12L)
+        )
+
+        whenever(deviceRepository.countRunningVersionsByWeek(any())).thenReturn(mockData)
+
+        val result = statsService.getRunningVersionsStats()
+
+        assertEquals(4, result.size)
+        assertEquals("2026-01-05", result[0].week)
+        assertEquals("0.13.3", result[0].version)
+        assertEquals(5L, result[0].count)
+        assertEquals("2026-01-05", result[1].week)
+        assertEquals("0.14.0", result[1].version)
+        assertEquals(10L, result[1].count)
+        assertEquals("2026-01-12", result[2].week)
+        assertEquals("0.13.3", result[2].version)
+        assertEquals(3L, result[2].count)
+        assertEquals("2026-01-12", result[3].week)
+        assertEquals("0.14.0", result[3].version)
+        assertEquals(12L, result[3].count)
+    }
 }

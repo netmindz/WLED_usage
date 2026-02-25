@@ -68,4 +68,9 @@ class StatsController(val statsService: StatsService) {
     fun getVersionOverTimeStats(): List<VersionWeeklyStats> {
         return statsService.getVersionOverTimeStats()
     }
+
+    @GetMapping("/running-versions")
+    fun getRunningVersionsStats(): List<VersionWeeklyStats> {
+        return statsService.getRunningVersionsStats()
+    }
 }

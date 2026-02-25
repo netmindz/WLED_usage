@@ -56,4 +56,34 @@ interface DeviceRepository : CrudRepository<Device, String> {
         nativeQuery = true
     )
     fun countNewDevicesByWeekAndVersion(since: LocalDateTime): List<Map<String, Any>>
+
+    @Query(
+        value = """
+            SELECT
+                weeks.weekStart,
+                COALESCE(
+                    (SELECT ue.new_version
+                     FROM upgrade_event ue
+                     WHERE ue.device_id = d.id
+                     AND ue.created < DATE_ADD(weeks.weekStart, INTERVAL 7 DAY)
+                     ORDER BY ue.created DESC
+                     LIMIT 1),
+                    d.version
+                ) as version,
+                COUNT(*) as deviceCount
+            FROM device d
+            CROSS JOIN (
+                SELECT DATE_ADD(DATE(DATE_SUB(:since, INTERVAL WEEKDAY(:since) DAY)), INTERVAL (n * 7) DAY) AS weekStart
+                FROM (SELECT 0 as n UNION ALL SELECT 1 UNION ALL SELECT 2 UNION ALL SELECT 3 UNION ALL SELECT 4
+                      UNION ALL SELECT 5 UNION ALL SELECT 6 UNION ALL SELECT 7 UNION ALL SELECT 8
+                      UNION ALL SELECT 9 UNION ALL SELECT 10 UNION ALL SELECT 11 UNION ALL SELECT 12) nums
+                WHERE DATE_ADD(DATE(DATE_SUB(:since, INTERVAL WEEKDAY(:since) DAY)), INTERVAL (n * 7) DAY) <= CURDATE()
+            ) weeks
+            WHERE d.created < DATE_ADD(weeks.weekStart, INTERVAL 7 DAY)
+            GROUP BY weeks.weekStart, version
+            ORDER BY weeks.weekStart, version
+        """,
+        nativeQuery = true
+    )
+    fun countRunningVersionsByWeek(since: LocalDateTime): List<Map<String, Any>>
 }
