@@ -50,4 +50,10 @@ interface DeviceRepository : CrudRepository<Device, String> {
 
     @Query("SELECT d.ledCount as ledCount, COUNT(d) as deviceCount FROM Device d WHERE d.ledCount IS NOT NULL GROUP BY d.ledCount ORDER BY d.ledCount ASC")
     fun countDevicesByLedCount(): List<Map<String, Any>>
+
+    @Query(
+        value = "SELECT DATE(DATE_SUB(created, INTERVAL WEEKDAY(created) DAY)) as weekStart, version, COUNT(*) as deviceCount FROM device WHERE created >= :since GROUP BY weekStart, version ORDER BY weekStart, version",
+        nativeQuery = true
+    )
+    fun countNewDevicesByWeekAndVersion(since: LocalDateTime): List<Map<String, Any>>
 }

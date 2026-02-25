@@ -126,13 +126,29 @@ class StatsService(
 
     fun getVersionOverTimeStats(): List<VersionWeeklyStats> {
         val since = LocalDateTime.now().minusMonths(3)
-        return upgradeEventRepository.countUpgradeEventsByWeekAndVersion(since).map {
-            VersionWeeklyStats(
-                week = it["weekStart"].toString(),
-                version = it["version"] as String,
-                count = (it["eventCount"] as Number).toLong()
-            )
+
+        // Combine upgrade events and new installations by week and version
+        val countsByWeekAndVersion = mutableMapOf<Pair<String, String>, Long>()
+
+        upgradeEventRepository.countUpgradeEventsByWeekAndVersion(since).forEach {
+            val key = Pair(it["weekStart"].toString(), it["version"] as String)
+            countsByWeekAndVersion.merge(key, (it["eventCount"] as Number).toLong(), Long::plus)
         }
+
+        deviceRepository.countNewDevicesByWeekAndVersion(since).forEach {
+            val key = Pair(it["weekStart"].toString(), it["version"] as String)
+            countsByWeekAndVersion.merge(key, (it["deviceCount"] as Number).toLong(), Long::plus)
+        }
+
+        return countsByWeekAndVersion.entries
+            .sortedWith(compareBy({ it.key.first }, { it.key.second }))
+            .map { (key, count) ->
+                VersionWeeklyStats(
+                    week = key.first,
+                    version = key.second,
+                    count = count
+                )
+            }
     }
 
     private fun calculateDynamicRanges(ledCounts: List<Pair<Int, Long>>): List<IntRange> {

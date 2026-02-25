@@ -188,6 +188,7 @@ class StatsServiceTest {
     @Test
     fun `getVersionOverTimeStats should return empty list when no data exists`() {
         whenever(upgradeEventRepository.countUpgradeEventsByWeekAndVersion(any())).thenReturn(emptyList())
+        whenever(deviceRepository.countNewDevicesByWeekAndVersion(any())).thenReturn(emptyList())
 
         val result = statsService.getVersionOverTimeStats()
 
@@ -195,26 +196,31 @@ class StatsServiceTest {
     }
 
     @Test
-    fun `getVersionOverTimeStats should return version data grouped by week`() {
-        val mockData = listOf(
+    fun `getVersionOverTimeStats should return version data grouped by week combining upgrades and new installations`() {
+        val upgradeData = listOf(
             mapOf("weekStart" to "2026-01-05", "version" to "0.14.0", "eventCount" to 10L),
             mapOf("weekStart" to "2026-01-05", "version" to "0.13.3", "eventCount" to 5L),
             mapOf("weekStart" to "2026-01-12", "version" to "0.14.0", "eventCount" to 15L)
         )
+        val installationData = listOf(
+            mapOf("weekStart" to "2026-01-05", "version" to "0.14.0", "deviceCount" to 3L),
+            mapOf("weekStart" to "2026-01-12", "version" to "0.14.0", "deviceCount" to 7L)
+        )
 
-        whenever(upgradeEventRepository.countUpgradeEventsByWeekAndVersion(any())).thenReturn(mockData)
+        whenever(upgradeEventRepository.countUpgradeEventsByWeekAndVersion(any())).thenReturn(upgradeData)
+        whenever(deviceRepository.countNewDevicesByWeekAndVersion(any())).thenReturn(installationData)
 
         val result = statsService.getVersionOverTimeStats()
 
         assertEquals(3, result.size)
         assertEquals("2026-01-05", result[0].week)
-        assertEquals("0.14.0", result[0].version)
-        assertEquals(10L, result[0].count)
+        assertEquals("0.13.3", result[0].version)
+        assertEquals(5L, result[0].count)
         assertEquals("2026-01-05", result[1].week)
-        assertEquals("0.13.3", result[1].version)
-        assertEquals(5L, result[1].count)
+        assertEquals("0.14.0", result[1].version)
+        assertEquals(13L, result[1].count) // 10 upgrades + 3 new installations
         assertEquals("2026-01-12", result[2].week)
         assertEquals("0.14.0", result[2].version)
-        assertEquals(15L, result[2].count)
+        assertEquals(22L, result[2].count) // 15 upgrades + 7 new installations
     }
 }
