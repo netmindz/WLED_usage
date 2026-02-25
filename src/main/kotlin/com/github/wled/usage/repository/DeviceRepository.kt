@@ -68,6 +68,11 @@ interface DeviceRepository : CrudRepository<Device, String> {
                      AND ue.created < DATE_ADD(weeks.weekStart, INTERVAL 7 DAY)
                      ORDER BY ue.created DESC
                      LIMIT 1),
+                    (SELECT ue2.old_version
+                     FROM upgrade_event ue2
+                     WHERE ue2.device_id = d.id
+                     ORDER BY ue2.created ASC
+                     LIMIT 1),
                     d.version
                 ) as version,
                 COUNT(*) as deviceCount
