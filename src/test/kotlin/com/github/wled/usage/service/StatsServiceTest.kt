@@ -1,5 +1,7 @@
 package com.github.wled.usage.service
 
+import com.github.wled.usage.entity.Device
+import com.github.wled.usage.entity.UpgradeEvent
 import com.github.wled.usage.repository.DeviceRepository
 import com.github.wled.usage.repository.UpgradeEventRepository
 import org.junit.jupiter.api.Test
@@ -8,12 +10,39 @@ import org.junit.jupiter.api.Assertions.assertTrue
 import org.mockito.kotlin.any
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.whenever
+import java.time.LocalDateTime
 
 class StatsServiceTest {
 
     private val deviceRepository: DeviceRepository = mock()
     private val upgradeEventRepository: UpgradeEventRepository = mock()
     private val statsService = StatsService(deviceRepository, upgradeEventRepository)
+
+    private fun createDevice(id: String, version: String, created: LocalDateTime? = null): Device {
+        return Device(
+            id = id,
+            version = version,
+            releaseName = "TestRelease",
+            chip = "ESP32",
+            bootloaderSHA256 = "abc123",
+            created = created
+        )
+    }
+
+    private fun createUpgradeEvent(
+        device: Device,
+        oldVersion: String,
+        newVersion: String,
+        created: LocalDateTime
+    ): UpgradeEvent {
+        return UpgradeEvent(
+            id = null,
+            device = device,
+            oldVersion = oldVersion,
+            newVersion = newVersion,
+            created = created
+        )
+    }
 
     @Test
     fun `getDeviceCountByLedCountRange should return empty list when no devices exist`() {
@@ -225,8 +254,9 @@ class StatsServiceTest {
     }
 
     @Test
-    fun `getRunningVersionsStats should return empty list when no data exists`() {
-        whenever(deviceRepository.countRunningVersionsByWeek(any())).thenReturn(emptyList())
+    fun `getRunningVersionsStats should return empty list when no devices exist`() {
+        whenever(deviceRepository.findAll()).thenReturn(emptyList())
+        whenever(upgradeEventRepository.findAllWithDevice()).thenReturn(emptyList())
 
         val result = statsService.getRunningVersionsStats()
 
@@ -235,29 +265,148 @@ class StatsServiceTest {
 
     @Test
     fun `getRunningVersionsStats should return version data grouped by week based on most recent upgrade event`() {
-        val mockData = listOf(
-            mapOf("weekStart" to "2026-01-05", "version" to "0.13.3", "deviceCount" to 5L),
-            mapOf("weekStart" to "2026-01-05", "version" to "0.14.0", "deviceCount" to 10L),
-            mapOf("weekStart" to "2026-01-12", "version" to "0.13.3", "deviceCount" to 3L),
-            mapOf("weekStart" to "2026-01-12", "version" to "0.14.0", "deviceCount" to 12L)
-        )
+        val now = LocalDateTime.now()
 
-        whenever(deviceRepository.countRunningVersionsByWeek(any())).thenReturn(mockData)
+        val device1 = createDevice("d1", "0.14.0", created = now.minusWeeks(4))
+        val device2 = createDevice("d2", "0.14.0", created = now.minusWeeks(4))
+
+        // Device 1 upgraded from 0.13.3 to 0.14.0 one week ago
+        val event1 = createUpgradeEvent(device1, "0.13.3", "0.14.0", now.minusWeeks(1))
+        // Device 2 was already on 0.14.0 (check-in event)
+        val event2 = createUpgradeEvent(device2, "0.14.0", "0.14.0", now.minusWeeks(3))
+
+        whenever(deviceRepository.findAll()).thenReturn(listOf(device1, device2))
+        whenever(upgradeEventRepository.findAllWithDevice()).thenReturn(listOf(event1, event2))
 
         val result = statsService.getRunningVersionsStats()
 
-        assertEquals(4, result.size)
-        assertEquals("2026-01-05", result[0].week)
-        assertEquals("0.13.3", result[0].version)
-        assertEquals(5L, result[0].count)
-        assertEquals("2026-01-05", result[1].week)
-        assertEquals("0.14.0", result[1].version)
-        assertEquals(10L, result[1].count)
-        assertEquals("2026-01-12", result[2].week)
-        assertEquals("0.13.3", result[2].version)
-        assertEquals(3L, result[2].count)
-        assertEquals("2026-01-12", result[3].week)
-        assertEquals("0.14.0", result[3].version)
-        assertEquals(12L, result[3].count)
+        assertTrue(result.isNotEmpty())
+        // At least verify the structure is returned correctly
+        result.forEach {
+            assertTrue(it.week.isNotEmpty())
+            assertTrue(it.version.isNotEmpty())
+            assertTrue(it.count > 0)
+        }
+    }
+
+    @Test
+    fun `determineVersionAtTime should return current version when no events exist`() {
+        val device = createDevice("d1", "0.14.0")
+        val time = LocalDateTime.now()
+
+        val result = statsService.determineVersionAtTime(device, emptyList(), time)
+
+        assertEquals("0.14.0", result)
+    }
+
+    @Test
+    fun `determineVersionAtTime should return new_version of most recent event before time`() {
+        val device = createDevice("d1", "0.15.0")
+        val time = LocalDateTime.of(2026, 2, 20, 0, 0)
+
+        val events = listOf(
+            createUpgradeEvent(device, "0.13.0", "0.14.0", LocalDateTime.of(2026, 2, 1, 10, 0)),
+            createUpgradeEvent(device, "0.14.0", "0.14.1", LocalDateTime.of(2026, 2, 10, 10, 0))
+        )
+
+        val result = statsService.determineVersionAtTime(device, events, time)
+
+        assertEquals("0.14.1", result)
+    }
+
+    @Test
+    fun `determineVersionAtTime should return old_version of earliest event when all events are after time`() {
+        val device = createDevice("d1", "0.15.0")
+        val time = LocalDateTime.of(2026, 1, 1, 0, 0)
+
+        val events = listOf(
+            createUpgradeEvent(device, "0.13.0", "0.14.0", LocalDateTime.of(2026, 2, 1, 10, 0)),
+            createUpgradeEvent(device, "0.14.0", "0.15.0", LocalDateTime.of(2026, 2, 10, 10, 0))
+        )
+
+        val result = statsService.determineVersionAtTime(device, events, time)
+
+        assertEquals("0.13.0", result)
+    }
+
+    @Test
+    fun `determineVersionAtTime should use events before time even when events after exist`() {
+        val device = createDevice("d1", "0.16.0")
+        val time = LocalDateTime.of(2026, 2, 5, 0, 0)
+
+        val events = listOf(
+            createUpgradeEvent(device, "0.13.0", "0.14.0", LocalDateTime.of(2026, 2, 1, 10, 0)),
+            createUpgradeEvent(device, "0.14.0", "0.16.0", LocalDateTime.of(2026, 2, 10, 10, 0))
+        )
+
+        val result = statsService.determineVersionAtTime(device, events, time)
+
+        assertEquals("0.14.0", result)
+    }
+
+    @Test
+    fun `getRunningVersionsStats should show old version counts decreasing as devices upgrade`() {
+        // This is the core scenario from the issue:
+        // All devices start on 0.13.0, some upgrade to 0.14.0 over time
+        val threeMonthsAgo = LocalDateTime.now().minusMonths(3)
+        val twoWeeksAgo = LocalDateTime.now().minusWeeks(2)
+        val oneWeekAgo = LocalDateTime.now().minusWeeks(1)
+
+        // All devices created before the tracking window
+        val device1 = createDevice("d1", "0.14.0", created = threeMonthsAgo.minusMonths(1))
+        val device2 = createDevice("d2", "0.14.0", created = threeMonthsAgo.minusMonths(1))
+        val device3 = createDevice("d3", "0.13.0", created = threeMonthsAgo.minusMonths(1))
+
+        // Device 1 was on 0.13.0, upgraded to 0.14.0 two weeks ago
+        val event1a = createUpgradeEvent(device1, "0.13.0", "0.13.0", threeMonthsAgo.plusWeeks(1))
+        val event1b = createUpgradeEvent(device1, "0.13.0", "0.14.0", twoWeeksAgo)
+
+        // Device 2 was on 0.13.0, upgraded to 0.14.0 one week ago
+        val event2a = createUpgradeEvent(device2, "0.13.0", "0.13.0", threeMonthsAgo.plusWeeks(1))
+        val event2b = createUpgradeEvent(device2, "0.13.0", "0.14.0", oneWeekAgo)
+
+        // Device 3 stays on 0.13.0 (check-in only)
+        val event3 = createUpgradeEvent(device3, "0.13.0", "0.13.0", threeMonthsAgo.plusWeeks(1))
+
+        whenever(deviceRepository.findAll()).thenReturn(listOf(device1, device2, device3))
+        whenever(upgradeEventRepository.findAllWithDevice()).thenReturn(
+            listOf(event1a, event1b, event2a, event2b, event3)
+        )
+
+        val result = statsService.getRunningVersionsStats()
+
+        // Group by week for analysis
+        val byWeek = result.groupBy { it.week }
+        val sortedWeeks = byWeek.entries.sortedBy { it.key }
+
+        // Find a week after the check-in events but before any upgrades
+        // (check-ins were at threeMonthsAgo + 1 week, upgrades at 2 and 1 weeks ago)
+        val midWeeks = sortedWeeks.filter { entry ->
+            val stats = entry.value
+            val v13count = stats.find { it.version == "0.13.0" }?.count ?: 0
+            v13count > 0
+        }
+        assertTrue(midWeeks.isNotEmpty(), "Should have weeks where devices are on 0.13.0")
+
+        // In the latest week (after all upgrades), old version count should have decreased
+        val latestWeek = sortedWeeks.last()
+        val latestV13count = latestWeek.value.find { it.version == "0.13.0" }?.count ?: 0
+        val latestV14count = latestWeek.value.find { it.version == "0.14.0" }?.count ?: 0
+        assertTrue(latestV13count < 3, "Latest week should have fewer than 3 devices on 0.13.0, got $latestV13count")
+        assertTrue(latestV14count > 0, "Latest week should have devices on 0.14.0, got $latestV14count")
+    }
+
+    @Test
+    fun `generateWeekStarts should generate weeks starting from Monday`() {
+        val since = LocalDateTime.of(2026, 1, 7, 12, 0) // Wednesday Jan 7
+        val result = statsService.generateWeekStarts(since)
+
+        assertTrue(result.isNotEmpty())
+        // First week should start on Monday Jan 5
+        assertEquals(LocalDateTime.of(2026, 1, 5, 0, 0), result[0])
+        // Second week should start on Monday Jan 12
+        if (result.size > 1) {
+            assertEquals(LocalDateTime.of(2026, 1, 12, 0, 0), result[1])
+        }
     }
 }

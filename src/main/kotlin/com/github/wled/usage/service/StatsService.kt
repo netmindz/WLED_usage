@@ -10,9 +10,13 @@ import com.github.wled.usage.dto.ReleaseNameStats
 import com.github.wled.usage.dto.UpgradeVsInstallationWeeklyStats
 import com.github.wled.usage.dto.VersionStats
 import com.github.wled.usage.dto.VersionWeeklyStats
+import com.github.wled.usage.entity.Device
+import com.github.wled.usage.entity.UpgradeEvent
 import com.github.wled.usage.repository.DeviceRepository
 import com.github.wled.usage.repository.UpgradeEventRepository
 import org.springframework.stereotype.Service
+import java.time.DayOfWeek
+import java.time.LocalDate
 import java.time.LocalDateTime
 
 @Service
@@ -127,13 +131,38 @@ class StatsService(
     fun getRunningVersionsStats(): List<VersionWeeklyStats> {
         val since = LocalDateTime.now().minusMonths(3)
 
-        return deviceRepository.countRunningVersionsByWeek(since).map {
-            VersionWeeklyStats(
-                week = it["weekStart"].toString(),
-                version = it["version"] as String,
-                count = (it["deviceCount"] as Number).toLong()
-            )
+        val weekStarts = generateWeekStarts(since)
+        val devices = deviceRepository.findAll().toList()
+        val allEvents = upgradeEventRepository.findAllWithDevice()
+        val eventsByDeviceId = allEvents.groupBy { it.device.id }
+            .mapValues { (_, events) -> events.sortedBy { it.created } }
+
+        val results = mutableListOf<VersionWeeklyStats>()
+
+        for (weekStart in weekStarts) {
+            val weekEnd = weekStart.plusDays(7)
+            val versionCounts = mutableMapOf<String, Long>()
+
+            for (device in devices) {
+                if (device.created != null && !device.created.isBefore(weekEnd)) continue
+
+                val deviceEvents = eventsByDeviceId[device.id] ?: emptyList()
+                val version = determineVersionAtTime(device, deviceEvents, weekEnd)
+                versionCounts.merge(version, 1, Long::plus)
+            }
+
+            versionCounts.entries
+                .sortedBy { it.key }
+                .forEach { (version, count) ->
+                    results.add(VersionWeeklyStats(
+                        week = weekStart.toLocalDate().toString(),
+                        version = version,
+                        count = count
+                    ))
+                }
         }
+
+        return results
     }
 
     fun getVersionOverTimeStats(): List<VersionWeeklyStats> {
@@ -230,5 +259,39 @@ class StatsService(
             
             LedCountRangeStats(range = rangeLabel, deviceCount = count)
         }.filter { it.deviceCount > 0 }
+    }
+
+    internal fun generateWeekStarts(since: LocalDateTime): List<LocalDateTime> {
+        val sinceDate = since.toLocalDate()
+        val mondayOfSinceWeek = sinceDate.with(DayOfWeek.MONDAY)
+        val today = LocalDate.now()
+
+        return (0..12)
+            .map { n -> mondayOfSinceWeek.plusWeeks(n.toLong()) }
+            .filter { !it.isAfter(today) }
+            .map { it.atStartOfDay() }
+    }
+
+    internal fun determineVersionAtTime(
+        device: Device,
+        sortedEvents: List<UpgradeEvent>,
+        time: LocalDateTime
+    ): String {
+        // Find most recent event before 'time'
+        val latestBefore = sortedEvents
+            .lastOrNull { it.created?.isBefore(time) == true }
+
+        if (latestBefore != null) {
+            return latestBefore.newVersion
+        }
+
+        // No events before 'time'. Use old_version of the earliest event (which must be after 'time').
+        val earliestEvent = sortedEvents.firstOrNull()
+        if (earliestEvent != null) {
+            return earliestEvent.oldVersion
+        }
+
+        // No events at all, use current version
+        return device.version
     }
 }
