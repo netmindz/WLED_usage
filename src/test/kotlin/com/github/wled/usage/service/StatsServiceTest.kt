@@ -1,16 +1,19 @@
 package com.github.wled.usage.service
 
 import com.github.wled.usage.repository.DeviceRepository
+import com.github.wled.usage.repository.UpgradeEventRepository
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
+import org.mockito.kotlin.any
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.whenever
 
 class StatsServiceTest {
 
     private val deviceRepository: DeviceRepository = mock()
-    private val statsService = StatsService(deviceRepository)
+    private val upgradeEventRepository: UpgradeEventRepository = mock()
+    private val statsService = StatsService(deviceRepository, upgradeEventRepository)
 
     @Test
     fun `getDeviceCountByLedCountRange should return empty list when no devices exist`() {
@@ -122,5 +125,63 @@ class StatsServiceTest {
         
         val psramNone = result.find { it.psramSize == "None" }
         assertEquals(200L, psramNone?.deviceCount)
+    }
+
+    @Test
+    fun `getUpgradeVsInstallationStats should return empty list when no data exists`() {
+        whenever(upgradeEventRepository.countUpgradeEventsByWeek(any())).thenReturn(emptyList())
+        whenever(deviceRepository.countNewDevicesByWeek(any())).thenReturn(emptyList())
+
+        val result = statsService.getUpgradeVsInstallationStats()
+
+        assertTrue(result.isEmpty())
+    }
+
+    @Test
+    fun `getUpgradeVsInstallationStats should combine upgrade and installation data by week`() {
+        val upgradeData = listOf(
+            mapOf("weekStart" to "2026-01-05", "eventCount" to 10L),
+            mapOf("weekStart" to "2026-01-12", "eventCount" to 15L)
+        )
+        val installationData = listOf(
+            mapOf("weekStart" to "2026-01-05", "deviceCount" to 25L),
+            mapOf("weekStart" to "2026-01-12", "deviceCount" to 30L)
+        )
+
+        whenever(upgradeEventRepository.countUpgradeEventsByWeek(any())).thenReturn(upgradeData)
+        whenever(deviceRepository.countNewDevicesByWeek(any())).thenReturn(installationData)
+
+        val result = statsService.getUpgradeVsInstallationStats()
+
+        assertEquals(2, result.size)
+        assertEquals("2026-01-05", result[0].week)
+        assertEquals(10L, result[0].upgrades)
+        assertEquals(25L, result[0].newInstallations)
+        assertEquals("2026-01-12", result[1].week)
+        assertEquals(15L, result[1].upgrades)
+        assertEquals(30L, result[1].newInstallations)
+    }
+
+    @Test
+    fun `getUpgradeVsInstallationStats should handle weeks with only upgrades or only installations`() {
+        val upgradeData = listOf(
+            mapOf("weekStart" to "2026-01-05", "eventCount" to 10L)
+        )
+        val installationData = listOf(
+            mapOf("weekStart" to "2026-01-12", "deviceCount" to 25L)
+        )
+
+        whenever(upgradeEventRepository.countUpgradeEventsByWeek(any())).thenReturn(upgradeData)
+        whenever(deviceRepository.countNewDevicesByWeek(any())).thenReturn(installationData)
+
+        val result = statsService.getUpgradeVsInstallationStats()
+
+        assertEquals(2, result.size)
+        assertEquals("2026-01-05", result[0].week)
+        assertEquals(10L, result[0].upgrades)
+        assertEquals(0L, result[0].newInstallations)
+        assertEquals("2026-01-12", result[1].week)
+        assertEquals(0L, result[1].upgrades)
+        assertEquals(25L, result[1].newInstallations)
     }
 }

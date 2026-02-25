@@ -3,8 +3,15 @@ package com.github.wled.usage.repository
 import com.github.wled.usage.entity.Device
 import org.springframework.data.jpa.repository.Query
 import org.springframework.data.repository.CrudRepository
+import java.time.LocalDateTime
 
 interface DeviceRepository : CrudRepository<Device, String> {
+
+    @Query(
+        value = "SELECT DATE(DATE_SUB(created, INTERVAL WEEKDAY(created) DAY)) as weekStart, COUNT(*) as deviceCount FROM device WHERE created >= :since GROUP BY weekStart ORDER BY weekStart",
+        nativeQuery = true
+    )
+    fun countNewDevicesByWeek(since: LocalDateTime): List<Map<String, Any>>
     @Query("SELECT d.countryCode as countryCode, COUNT(d) as deviceCount FROM Device d WHERE d.countryCode IS NOT NULL GROUP BY d.countryCode")
     fun countDevicesByCountryCode(): List<Map<String, Any>>
     

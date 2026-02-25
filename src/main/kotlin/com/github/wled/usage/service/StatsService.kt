@@ -7,12 +7,18 @@ import com.github.wled.usage.dto.LedCountRangeStats
 import com.github.wled.usage.dto.MatrixStats
 import com.github.wled.usage.dto.PsramSizeStats
 import com.github.wled.usage.dto.ReleaseNameStats
+import com.github.wled.usage.dto.UpgradeVsInstallationWeeklyStats
 import com.github.wled.usage.dto.VersionStats
 import com.github.wled.usage.repository.DeviceRepository
+import com.github.wled.usage.repository.UpgradeEventRepository
 import org.springframework.stereotype.Service
+import java.time.LocalDateTime
 
 @Service
-class StatsService(val deviceRepository: DeviceRepository) {
+class StatsService(
+    val deviceRepository: DeviceRepository,
+    val upgradeEventRepository: UpgradeEventRepository
+) {
     fun getDeviceCountByCountry(): List<CountryStats> {
         return deviceRepository.countDevicesByCountryCode().map {
             CountryStats(
@@ -97,6 +103,26 @@ class StatsService(val deviceRepository: DeviceRepository) {
         return aggregateIntoRanges(ledCounts, ranges)
     }
     
+    fun getUpgradeVsInstallationStats(): List<UpgradeVsInstallationWeeklyStats> {
+        val since = LocalDateTime.now().minusMonths(3)
+
+        val upgradesByWeek = upgradeEventRepository.countUpgradeEventsByWeek(since)
+            .associate { it["weekStart"].toString() to (it["eventCount"] as Number).toLong() }
+
+        val newDevicesByWeek = deviceRepository.countNewDevicesByWeek(since)
+            .associate { it["weekStart"].toString() to (it["deviceCount"] as Number).toLong() }
+
+        val allWeeks = (upgradesByWeek.keys + newDevicesByWeek.keys).sorted()
+
+        return allWeeks.map { week ->
+            UpgradeVsInstallationWeeklyStats(
+                week = week,
+                upgrades = upgradesByWeek[week] ?: 0,
+                newInstallations = newDevicesByWeek[week] ?: 0
+            )
+        }
+    }
+
     private fun calculateDynamicRanges(ledCounts: List<Pair<Int, Long>>): List<IntRange> {
         if (ledCounts.isEmpty()) {
             return emptyList()

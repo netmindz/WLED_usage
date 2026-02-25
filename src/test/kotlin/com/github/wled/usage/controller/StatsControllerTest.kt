@@ -7,6 +7,7 @@ import com.github.wled.usage.dto.LedCountRangeStats
 import com.github.wled.usage.dto.MatrixStats
 import com.github.wled.usage.dto.PsramSizeStats
 import com.github.wled.usage.dto.ReleaseNameStats
+import com.github.wled.usage.dto.UpgradeVsInstallationWeeklyStats
 import com.github.wled.usage.dto.VersionStats
 import com.github.wled.usage.service.StatsService
 import org.junit.jupiter.api.Test
@@ -322,6 +323,46 @@ class StatsControllerTest {
 
         mockMvc.perform(
             get("/api/stats/led-count")
+                .contentType(MediaType.APPLICATION_JSON)
+        )
+            .andExpect(status().isOk)
+            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+            .andExpect(jsonPath("$").isEmpty)
+    }
+
+    @Test
+    fun `getUpgradeVsInstallationStats should return weekly upgrade vs installation data`() {
+        val mockStats = listOf(
+            UpgradeVsInstallationWeeklyStats("2026-01-05", 10, 25),
+            UpgradeVsInstallationWeeklyStats("2026-01-12", 15, 30),
+            UpgradeVsInstallationWeeklyStats("2026-01-19", 20, 18)
+        )
+
+        whenever(statsService.getUpgradeVsInstallationStats()).thenReturn(mockStats)
+
+        mockMvc.perform(
+            get("/api/stats/upgrade-vs-installation")
+                .contentType(MediaType.APPLICATION_JSON)
+        )
+            .andExpect(status().isOk)
+            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+            .andExpect(jsonPath("$[0].week").value("2026-01-05"))
+            .andExpect(jsonPath("$[0].upgrades").value(10))
+            .andExpect(jsonPath("$[0].newInstallations").value(25))
+            .andExpect(jsonPath("$[1].week").value("2026-01-12"))
+            .andExpect(jsonPath("$[1].upgrades").value(15))
+            .andExpect(jsonPath("$[1].newInstallations").value(30))
+            .andExpect(jsonPath("$[2].week").value("2026-01-19"))
+            .andExpect(jsonPath("$[2].upgrades").value(20))
+            .andExpect(jsonPath("$[2].newInstallations").value(18))
+    }
+
+    @Test
+    fun `getUpgradeVsInstallationStats should return empty list when no data exists`() {
+        whenever(statsService.getUpgradeVsInstallationStats()).thenReturn(emptyList())
+
+        mockMvc.perform(
+            get("/api/stats/upgrade-vs-installation")
                 .contentType(MediaType.APPLICATION_JSON)
         )
             .andExpect(status().isOk)
