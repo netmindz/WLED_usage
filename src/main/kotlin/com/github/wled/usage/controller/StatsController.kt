@@ -7,6 +7,7 @@ import com.github.wled.usage.dto.LedCountRangeStats
 import com.github.wled.usage.dto.MatrixStats
 import com.github.wled.usage.dto.PsramSizeStats
 import com.github.wled.usage.dto.ReleaseNameStats
+import com.github.wled.usage.dto.UpgradeVsInstallationWeeklyStats
 import com.github.wled.usage.dto.VersionStats
 import com.github.wled.usage.service.StatsService
 import org.springframework.web.bind.annotation.GetMapping
@@ -55,5 +56,10 @@ class StatsController(val statsService: StatsService) {
     @GetMapping("/led-count")
     fun getLedCountRangeStats(): List<LedCountRangeStats> {
         return statsService.getDeviceCountByLedCountRange()
+    }
+
+    @GetMapping("/upgrade-vs-installation")
+    fun getUpgradeVsInstallationStats(): List<UpgradeVsInstallationWeeklyStats> {
+        return statsService.getUpgradeVsInstallationStats()
     }
 }

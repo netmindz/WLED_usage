@@ -119,6 +119,17 @@
             margin: 20px 0;
         }
         
+        #upgrade-vs-installation-chart {
+            display: flex;
+            justify-content: center;
+            margin: 20px 0;
+        }
+        
+        .axis-label {
+            font-size: 12px;
+            fill: #666;
+        }
+        
         .pie-slice {
             stroke: white;
             stroke-width: 2px;
@@ -215,6 +226,14 @@
             <div id="led-count-error" class="error" style="display: none;"></div>
             <div id="led-count-chart"></div>
             <div id="led-count-legend" class="legend"></div>
+        </div>
+        
+        <div class="chart-section">
+            <div class="chart-title">Upgrades vs New Installations (Last 3 Months)</div>
+            <div id="upgrade-vs-installation-loading" class="loading">Loading upgrade vs installation data...</div>
+            <div id="upgrade-vs-installation-error" class="error" style="display: none;"></div>
+            <div id="upgrade-vs-installation-chart"></div>
+            <div id="upgrade-vs-installation-legend" class="legend"></div>
         </div>
         
     </div>
@@ -1011,6 +1030,182 @@
                 
                 item.append("span")
                     .text(`${d.range} LEDs (${d.deviceCount.toLocaleString()})`);
+            });
+        }
+        
+        // Fetch and display upgrade vs installation data
+        fetch('/api/stats/upgrade-vs-installation')
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                document.getElementById('upgrade-vs-installation-loading').style.display = 'none';
+                
+                if (!data || data.length === 0) {
+                    document.getElementById('upgrade-vs-installation-error').textContent = 'No upgrade vs installation data available';
+                    document.getElementById('upgrade-vs-installation-error').style.display = 'block';
+                    return;
+                }
+                
+                createUpgradeVsInstallationChart(data);
+            })
+            .catch(error => {
+                console.error('Error fetching upgrade vs installation data:', error);
+                document.getElementById('upgrade-vs-installation-loading').style.display = 'none';
+                document.getElementById('upgrade-vs-installation-error').textContent = 'Error loading upgrade vs installation data: ' + error.message;
+                document.getElementById('upgrade-vs-installation-error').style.display = 'block';
+            });
+        
+        function createUpgradeVsInstallationChart(data) {
+            const margin = {top: 20, right: 30, bottom: 50, left: 60};
+            const width = 800 - margin.left - margin.right;
+            const height = 400 - margin.top - margin.bottom;
+            
+            const parseDate = d3.timeParse("%Y-%m-%d");
+            const formatDate = d3.timeFormat("%b %d");
+            
+            const chartData = data.map(d => ({
+                date: parseDate(d.week),
+                upgrades: d.upgrades,
+                newInstallations: d.newInstallations
+            }));
+            
+            const keys = ["upgrades", "newInstallations"];
+            const labels = {"upgrades": "Upgrades", "newInstallations": "New Installations"};
+            const colors = {"upgrades": "#4e79a7", "newInstallations": "#59a14f"};
+            
+            const stack = d3.stack().keys(keys);
+            const stackedData = stack(chartData);
+            
+            const x = d3.scaleTime()
+                .domain(d3.extent(chartData, d => d.date))
+                .range([0, width]);
+            
+            const y = d3.scaleLinear()
+                .domain([0, d3.max(stackedData, layer => d3.max(layer, d => d[1]))])
+                .nice()
+                .range([height, 0]);
+            
+            const svg = d3.select("#upgrade-vs-installation-chart")
+                .append("svg")
+                .attr("width", width + margin.left + margin.right)
+                .attr("height", height + margin.top + margin.bottom)
+                .append("g")
+                .attr("transform", `translate(${margin.left},${margin.top})`);
+            
+            const area = d3.area()
+                .x(d => x(d.data.date))
+                .y0(d => y(d[0]))
+                .y1(d => y(d[1]));
+            
+            const line = d3.line()
+                .x(d => x(d.data.date))
+                .y(d => y(d[1]));
+            
+            svg.selectAll(".layer")
+                .data(stackedData)
+                .enter()
+                .append("path")
+                .attr("class", "layer")
+                .attr("d", area)
+                .attr("fill", d => colors[d.key])
+                .attr("opacity", 0.6);
+            
+            svg.selectAll(".line")
+                .data(stackedData)
+                .enter()
+                .append("path")
+                .attr("class", "line")
+                .attr("d", line)
+                .attr("fill", "none")
+                .attr("stroke", d => colors[d.key])
+                .attr("stroke-width", 2);
+            
+            svg.append("g")
+                .attr("transform", `translate(0,${height})`)
+                .call(d3.axisBottom(x).ticks(d3.timeWeek.every(1)).tickFormat(formatDate))
+                .selectAll("text")
+                .attr("transform", "rotate(-45)")
+                .style("text-anchor", "end")
+                .attr("class", "axis-label");
+            
+            svg.append("g")
+                .call(d3.axisLeft(y).ticks(5))
+                .selectAll("text")
+                .attr("class", "axis-label");
+            
+            svg.append("text")
+                .attr("class", "axis-label")
+                .attr("text-anchor", "middle")
+                .attr("x", width / 2)
+                .attr("y", height + margin.bottom - 5)
+                .text("Week");
+            
+            svg.append("text")
+                .attr("class", "axis-label")
+                .attr("text-anchor", "middle")
+                .attr("transform", "rotate(-90)")
+                .attr("y", -margin.left + 15)
+                .attr("x", -height / 2)
+                .text("Count");
+            
+            // Add tooltip interaction
+            const bisect = d3.bisector(d => d.date).left;
+            
+            const focusGroup = svg.append("g")
+                .style("display", "none");
+            
+            focusGroup.append("line")
+                .attr("class", "focus-line")
+                .attr("y1", 0)
+                .attr("y2", height)
+                .attr("stroke", "#666")
+                .attr("stroke-dasharray", "3,3");
+            
+            svg.append("rect")
+                .attr("width", width)
+                .attr("height", height)
+                .attr("fill", "none")
+                .attr("pointer-events", "all")
+                .on("mouseover", () => focusGroup.style("display", null))
+                .on("mouseout", () => {
+                    focusGroup.style("display", "none");
+                    tooltip.style("opacity", 0);
+                })
+                .on("mousemove", function(event) {
+                    const x0 = x.invert(d3.pointer(event)[0]);
+                    const i = bisect(chartData, x0, 1);
+                    const d0 = chartData[i - 1];
+                    const d1 = chartData[i];
+                    if (!d0) return;
+                    const d = (d1 && (x0 - d0.date > d1.date - x0)) ? d1 : d0;
+                    
+                    focusGroup.select(".focus-line")
+                        .attr("x1", x(d.date))
+                        .attr("x2", x(d.date));
+                    
+                    tooltip.style("opacity", 1)
+                        .html(`<strong>Week of ${formatDate(d.date)}</strong><br/>Upgrades: ${d.upgrades.toLocaleString()}<br/>New Installations: ${d.newInstallations.toLocaleString()}`)
+                        .style("left", (event.pageX + 10) + "px")
+                        .style("top", (event.pageY - 10) + "px");
+                });
+            
+            // Create legend
+            const legend = d3.select("#upgrade-vs-installation-legend");
+            keys.forEach(key => {
+                const item = legend.append("div")
+                    .attr("class", "legend-item");
+                
+                item.append("div")
+                    .attr("class", "legend-color")
+                    .style("background-color", colors[key]);
+                
+                const total = chartData.reduce((sum, d) => sum + d[key], 0);
+                item.append("span")
+                    .text(`${labels[key]} (${total.toLocaleString()} total)`);
             });
         }
         
