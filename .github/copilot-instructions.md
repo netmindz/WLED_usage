@@ -98,6 +98,86 @@ src/main/resources/
 3. **Build**: Application is packaged as a Docker image
 4. **Configuration**: Environment-specific configs in `application-{profile}.yaml`
 
+## Frontend Dashboard
+
+The dashboard is a **single static HTML file** at `src/main/resources/static/index.html` served by Spring Boot.
+
+- **Charting library**: D3.js v7, loaded from CDN at `https://d3js.org/d3.v7.min.js` (this URL is in the `<script>` tag and works in the browser at runtime)
+- **Chart type**: All charts are SVG-based D3.js visualisations rendered directly into the page
+- **Adding charts**: Append a new `<div class="chart-section">` block and a corresponding D3.js `<script>` block to `index.html`; the script fetches data from the relevant `/api/stats/…` endpoint and renders an SVG chart
+- **No separate build step**: There is no frontend build system (no npm, no webpack); all chart code is inline JavaScript in `index.html`
+
+> **Sandbox note**: The `d3js.org` domain is **blocked by the agent firewall** at build/test time. This is not a problem because the CDN URL is only used by the end user's browser at runtime, not during the build. Do **not** try to `curl`/download `d3.js` locally.
+
+## Data Model
+
+### `Device` entity (table: `device`, PK: `id` String — MAC-derived device ID)
+
+| Field | Type | Notes |
+|---|---|---|
+| `id` | `String` | Primary key |
+| `version` | `String` | Current WLED firmware version |
+| `releaseName` | `String` | Human-readable release name |
+| `chip` | `String` | MCU type (e.g. `ESP32`, `ESP8266`, `ESP32-S3`) |
+| `ledCount` | `Int?` | Number of LEDs configured |
+| `isMatrix` | `Boolean?` | Whether device is configured as a matrix |
+| `bootloaderSHA256` | `String` | SHA-256 of the bootloader |
+| `brand` / `product` | `String?` | Hardware brand/product |
+| `flashSize` | `String?` | Flash size (e.g. `4MB`) |
+| `partitionSizes` | `String?` | Partition table info |
+| `psramSize` | `String?` | PSRAM size (e.g. `2MB`) |
+| `psramPresent` | `Boolean?` | Whether PSRAM is present |
+| `countryCode` | `String?` | Two-letter ISO country code |
+| `repo` | `String?` | Fork/repo identifier |
+| `created` | `LocalDateTime?` | First seen (auto-set by Hibernate) |
+| `lastUpdate` | `LocalDateTime?` | Last updated (auto-set by Hibernate) |
+
+### `UpgradeEvent` entity (table: `upgrade_event`, PK: auto-generated `Long`)
+
+| Field | Type | Notes |
+|---|---|---|
+| `id` | `Long?` | Auto-generated PK |
+| `device` | `Device` | `@ManyToOne` FK to `device` table |
+| `oldVersion` | `String` | Version before upgrade |
+| `newVersion` | `String` | Version after upgrade |
+| `created` | `LocalDateTime?` | Timestamp (auto-set by Hibernate) |
+
+An `UpgradeEvent` row is recorded every time a device reports a version change. A **new installation** is a `Device` record where `created == lastUpdate` (no prior version seen), while an **upgrade** is an `UpgradeEvent` for an already-known device.
+
+## Repository Query Pattern
+
+Repository methods that aggregate data use Spring Data JPA `@Query` annotations and return `List<Map<String, Any>>`. The service layer maps these to typed DTOs. JPQL projections use alias names as Map keys; native SQL queries (`nativeQuery = true`) are used for date/time grouping that requires database-specific functions (e.g. `DATE_SUB … WEEKDAY`).
+
+```kotlin
+// Typical JPQL aggregation
+@Query("SELECT d.chip as chip, COUNT(d) as deviceCount FROM Device d GROUP BY d.chip")
+fun countDevicesByChip(): List<Map<String, Any>>
+
+// Typical native SQL for date math (MySQL)
+@Query(value = "SELECT DATE(DATE_SUB(created, INTERVAL WEEKDAY(created) DAY)) as weekStart, COUNT(*) as deviceCount FROM device WHERE created >= :since GROUP BY weekStart", nativeQuery = true)
+fun countNewDevicesByWeek(since: LocalDateTime): List<Map<String, Any>>
+```
+
+## Existing API Endpoints
+
+### `POST /api/usage/upgrade`
+Records an upgrade/installation event. Body: `UpgradeEventRequest`. Optional header: `X-Country-Code`.
+
+### `GET /api/stats/…`
+All stats endpoints are in `StatsController` and return JSON arrays of DTO objects.
+
+| Endpoint | DTO | Description |
+|---|---|---|
+| `/api/stats/country` | `CountryStats` | Device count by country code |
+| `/api/stats/version` | `VersionStats` | Device count by firmware version |
+| `/api/stats/chip` | `ChipStats` | Device count by MCU chip type |
+| `/api/stats/matrix` | `MatrixStats` | Device count by matrix/non-matrix |
+| `/api/stats/flash-size` | `FlashSizeStats` | Device count by flash size |
+| `/api/stats/psram-size` | `PsramSizeStats` | Device count by PSRAM size |
+| `/api/stats/release-name` | `ReleaseNameStats` | Device count by release name |
+| `/api/stats/led-count` | `LedCountRangeStats` | Device count by LED count range |
+| `/api/stats/upgrade-vs-installation` | `UpgradeVsInstallationWeeklyStats` | Weekly upgrades vs new installations |
+
 ## Special Considerations
 
 1. **UDP Server**: The project includes a UDP server component (`UDPServer.kt`) currently commented out in main
@@ -122,6 +202,15 @@ src/main/resources/
 3. Create controller method in `controller/` package
 4. Write unit tests in `src/test/kotlin/`
 5. Update OpenAPI documentation if needed
+
+### Adding a New Dashboard Chart/Widget
+
+1. Create a DTO data class in `dto/` (e.g. `data class MyStats(val label: String, val count: Long)`)
+2. Add an aggregation query to the relevant repository in `repository/` returning `List<Map<String, Any>>`
+3. Add a service method in `service/StatsService.kt` that calls the repository and maps to the DTO
+4. Add a `@GetMapping` in `controller/StatsController.kt` returning the DTO list
+5. Add a new `<div class="chart-section">` block and a D3.js `<script>` block in `src/main/resources/static/index.html` that fetches from the new endpoint and renders an SVG chart
+6. Write controller and service unit tests
 
 ### Adding Database Changes
 
