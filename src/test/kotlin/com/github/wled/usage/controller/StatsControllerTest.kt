@@ -9,6 +9,7 @@ import com.github.wled.usage.dto.PsramSizeStats
 import com.github.wled.usage.dto.ReleaseNameStats
 import com.github.wled.usage.dto.UpgradeVsInstallationWeeklyStats
 import com.github.wled.usage.dto.VersionStats
+import com.github.wled.usage.dto.VersionWeeklyStats
 import com.github.wled.usage.service.StatsService
 import org.junit.jupiter.api.Test
 import org.mockito.kotlin.whenever
@@ -363,6 +364,46 @@ class StatsControllerTest {
 
         mockMvc.perform(
             get("/api/stats/upgrade-vs-installation")
+                .contentType(MediaType.APPLICATION_JSON)
+        )
+            .andExpect(status().isOk)
+            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+            .andExpect(jsonPath("$").isEmpty)
+    }
+
+    @Test
+    fun `getVersionOverTimeStats should return weekly version data`() {
+        val mockStats = listOf(
+            VersionWeeklyStats("2026-01-05", "0.14.0", 10),
+            VersionWeeklyStats("2026-01-05", "0.13.3", 5),
+            VersionWeeklyStats("2026-01-12", "0.14.0", 15)
+        )
+
+        whenever(statsService.getVersionOverTimeStats()).thenReturn(mockStats)
+
+        mockMvc.perform(
+            get("/api/stats/version-over-time")
+                .contentType(MediaType.APPLICATION_JSON)
+        )
+            .andExpect(status().isOk)
+            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+            .andExpect(jsonPath("$[0].week").value("2026-01-05"))
+            .andExpect(jsonPath("$[0].version").value("0.14.0"))
+            .andExpect(jsonPath("$[0].count").value(10))
+            .andExpect(jsonPath("$[1].week").value("2026-01-05"))
+            .andExpect(jsonPath("$[1].version").value("0.13.3"))
+            .andExpect(jsonPath("$[1].count").value(5))
+            .andExpect(jsonPath("$[2].week").value("2026-01-12"))
+            .andExpect(jsonPath("$[2].version").value("0.14.0"))
+            .andExpect(jsonPath("$[2].count").value(15))
+    }
+
+    @Test
+    fun `getVersionOverTimeStats should return empty list when no data exists`() {
+        whenever(statsService.getVersionOverTimeStats()).thenReturn(emptyList())
+
+        mockMvc.perform(
+            get("/api/stats/version-over-time")
                 .contentType(MediaType.APPLICATION_JSON)
         )
             .andExpect(status().isOk)

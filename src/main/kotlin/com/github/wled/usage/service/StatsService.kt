@@ -9,6 +9,7 @@ import com.github.wled.usage.dto.PsramSizeStats
 import com.github.wled.usage.dto.ReleaseNameStats
 import com.github.wled.usage.dto.UpgradeVsInstallationWeeklyStats
 import com.github.wled.usage.dto.VersionStats
+import com.github.wled.usage.dto.VersionWeeklyStats
 import com.github.wled.usage.repository.DeviceRepository
 import com.github.wled.usage.repository.UpgradeEventRepository
 import org.springframework.stereotype.Service
@@ -119,6 +120,17 @@ class StatsService(
                 week = week,
                 upgrades = upgradesByWeek[week] ?: 0,
                 newInstallations = newDevicesByWeek[week] ?: 0
+            )
+        }
+    }
+
+    fun getVersionOverTimeStats(): List<VersionWeeklyStats> {
+        val since = LocalDateTime.now().minusMonths(3)
+        return upgradeEventRepository.countUpgradeEventsByWeekAndVersion(since).map {
+            VersionWeeklyStats(
+                week = it["weekStart"].toString(),
+                version = it["version"] as String,
+                count = (it["eventCount"] as Number).toLong()
             )
         }
     }
