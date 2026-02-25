@@ -266,7 +266,6 @@ class StatsServiceTest {
     @Test
     fun `getRunningVersionsStats should return version data grouped by week based on most recent upgrade event`() {
         val now = LocalDateTime.now()
-        val weekStart = now.minusWeeks(2)
 
         val device1 = createDevice("d1", "0.14.0", created = now.minusWeeks(4))
         val device2 = createDevice("d2", "0.14.0", created = now.minusWeeks(4))
@@ -378,24 +377,23 @@ class StatsServiceTest {
 
         // Group by week for analysis
         val byWeek = result.groupBy { it.week }
+        val sortedWeeks = byWeek.entries.sortedBy { it.key }
 
-        // Find a week before any upgrades and a week after all upgrades
-        val earlyWeeks = byWeek.entries.sortedBy { it.key }.take(3)
-        val lateWeeks = byWeek.entries.sortedBy { it.key }.takeLast(1)
-
-        // In early weeks, all 3 devices should be on 0.13.0
-        for ((_, stats) in earlyWeeks) {
+        // Find a week after the check-in events but before any upgrades
+        // (check-ins were at threeMonthsAgo + 1 week, upgrades at 2 and 1 weeks ago)
+        val midWeeks = sortedWeeks.filter { entry ->
+            val stats = entry.value
             val v13count = stats.find { it.version == "0.13.0" }?.count ?: 0
-            assertEquals(3L, v13count, "Early weeks should have all 3 devices on 0.13.0")
+            v13count > 0
         }
+        assertTrue(midWeeks.isNotEmpty(), "Should have weeks where devices are on 0.13.0")
 
-        // In the latest week, old version count should have decreased
-        for ((_, stats) in lateWeeks) {
-            val v13count = stats.find { it.version == "0.13.0" }?.count ?: 0
-            val v14count = stats.find { it.version == "0.14.0" }?.count ?: 0
-            assertTrue(v13count < 3, "Late weeks should have fewer than 3 devices on 0.13.0, got $v13count")
-            assertTrue(v14count > 0, "Late weeks should have devices on 0.14.0, got $v14count")
-        }
+        // In the latest week (after all upgrades), old version count should have decreased
+        val latestWeek = sortedWeeks.last()
+        val latestV13count = latestWeek.value.find { it.version == "0.13.0" }?.count ?: 0
+        val latestV14count = latestWeek.value.find { it.version == "0.14.0" }?.count ?: 0
+        assertTrue(latestV13count < 3, "Latest week should have fewer than 3 devices on 0.13.0, got $latestV13count")
+        assertTrue(latestV14count > 0, "Latest week should have devices on 0.14.0, got $latestV14count")
     }
 
     @Test

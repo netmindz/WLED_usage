@@ -144,7 +144,7 @@ class StatsService(
             val versionCounts = mutableMapOf<String, Long>()
 
             for (device in devices) {
-                if (device.created != null && device.created!! >= weekEnd) continue
+                if (device.created != null && !device.created.isBefore(weekEnd)) continue
 
                 val deviceEvents = eventsByDeviceId[device.id] ?: emptyList()
                 val version = determineVersionAtTime(device, deviceEvents, weekEnd)
@@ -279,7 +279,7 @@ class StatsService(
     ): String {
         // Find most recent event before 'time'
         val latestBefore = sortedEvents
-            .lastOrNull { it.created != null && it.created!! < time }
+            .lastOrNull { it.created?.isBefore(time) == true }
 
         if (latestBefore != null) {
             return latestBefore.newVersion
