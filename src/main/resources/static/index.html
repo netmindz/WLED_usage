@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>WLED Usage Dashboard</title>
     <script src="https://d3js.org/d3.v7.min.js"></script>
-    <script src="https://unpkg.com/topojson-client@3"></script>
+    <script src="https://unpkg.com/topojson-client@3.1.0"></script>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -1778,7 +1778,7 @@
                 if (!r.ok) throw new Error("Failed to load country data");
                 return r.json();
             }),
-            fetch("https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json").then(r => {
+            fetch("https://cdn.jsdelivr.net/npm/world-atlas@2.0.2/countries-110m.json").then(r => {
                 if (!r.ok) throw new Error("Failed to load world map data");
                 return r.json();
             })
