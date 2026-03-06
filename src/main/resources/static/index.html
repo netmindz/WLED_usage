@@ -1729,15 +1729,13 @@
                 .on("mouseover", function(event, d) {
                     const count = countryByNumeric[d.id] || 0;
                     const name = d.properties.name || "Unknown";
-                    tooltip.style("display", "block")
-                        .html(`<strong>${name}</strong><br>${count.toLocaleString()} devices`);
-                })
-                .on("mousemove", function(event) {
-                    tooltip.style("left", (event.pageX + 10) + "px")
-                        .style("top", (event.pageY - 28) + "px");
+                    tooltip.style("opacity", 1)
+                        .html(`<strong>${name}</strong><br/>Devices: ${count.toLocaleString()}`)
+                        .style("left", (event.pageX + 10) + "px")
+                        .style("top", (event.pageY - 10) + "px");
                 })
                 .on("mouseout", function() {
-                    tooltip.style("display", "none");
+                    tooltip.style("opacity", 0);
                 });
 
             // Gradient legend bar
