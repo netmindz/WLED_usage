@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>WLED Usage Dashboard</title>
     <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="https://unpkg.com/topojson-client@3"></script>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -137,6 +138,38 @@
             margin: 20px 0;
         }
         
+        #country-chart {
+            display: flex;
+            justify-content: center;
+            margin: 20px 0;
+        }
+        
+        .country-path {
+            stroke: #fff;
+            stroke-width: 0.5px;
+            transition: opacity 0.3s;
+        }
+        
+        .country-path:hover {
+            opacity: 0.8;
+            stroke-width: 1.5px;
+        }
+        
+        .map-legend {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-top: 10px;
+            gap: 5px;
+            font-size: 13px;
+        }
+        
+        .map-legend-bar {
+            width: 300px;
+            height: 12px;
+            border-radius: 3px;
+        }
+        
         .axis-label {
             font-size: 12px;
             fill: #666;
@@ -262,6 +295,15 @@
             <div id="running-versions-error" class="error" style="display: none;"></div>
             <div id="running-versions-chart"></div>
             <div id="running-versions-legend" class="legend"></div>
+        </div>
+        
+        <div class="chart-section">
+            <div class="chart-title">Device Count by Country</div>
+            <div id="country-loading" class="loading">Loading country data...</div>
+            <div id="country-error" class="error" style="display: none;"></div>
+            <div id="country-chart"></div>
+            <div id="country-map-legend" class="map-legend"></div>
+            <div id="country-legend" class="legend"></div>
         </div>
         
     </div>
@@ -1614,6 +1656,143 @@
                     .text(`${version} (${(lastWeekData ? lastWeekData[version] : 0).toLocaleString()} devices)`);
             });
         }
+        
+        // Country choropleth map
+        const alpha2ToNumeric = {
+            "AF":"004","AL":"008","DZ":"012","AS":"016","AD":"020","AO":"024","AG":"028","AR":"032","AM":"051","AU":"036",
+            "AT":"040","AZ":"031","BS":"044","BH":"048","BD":"050","BB":"052","BY":"112","BE":"056","BZ":"084","BJ":"204",
+            "BT":"064","BO":"068","BA":"070","BW":"072","BR":"076","BN":"096","BG":"100","BF":"854","BI":"108","CV":"132",
+            "KH":"116","CM":"120","CA":"124","CF":"140","TD":"148","CL":"152","CN":"156","CO":"170","KM":"174","CG":"178",
+            "CD":"180","CR":"188","CI":"384","HR":"191","CU":"192","CY":"196","CZ":"203","DK":"208","DJ":"262","DM":"212",
+            "DO":"214","EC":"218","EG":"818","SV":"222","GQ":"226","ER":"232","EE":"233","SZ":"748","ET":"231","FJ":"242",
+            "FI":"246","FR":"250","GA":"266","GM":"270","GE":"268","DE":"276","GH":"288","GR":"300","GD":"308","GT":"320",
+            "GN":"324","GW":"624","GY":"328","HT":"332","HN":"340","HU":"348","IS":"352","IN":"356","ID":"360","IR":"364",
+            "IQ":"368","IE":"372","IL":"376","IT":"380","JM":"388","JP":"392","JO":"400","KZ":"398","KE":"404","KI":"296",
+            "KP":"408","KR":"410","KW":"414","KG":"417","LA":"418","LV":"428","LB":"422","LS":"426","LR":"430","LY":"434",
+            "LI":"438","LT":"440","LU":"442","MG":"450","MW":"454","MY":"458","MV":"462","ML":"466","MT":"470","MH":"584",
+            "MR":"478","MU":"480","MX":"484","FM":"583","MD":"498","MC":"492","MN":"496","ME":"499","MA":"504","MZ":"508",
+            "MM":"104","NA":"516","NR":"520","NP":"524","NL":"528","NZ":"554","NI":"558","NE":"562","NG":"566","MK":"807",
+            "NO":"578","OM":"512","PK":"586","PW":"585","PA":"591","PG":"598","PY":"600","PE":"604","PH":"608","PL":"616",
+            "PT":"620","QA":"634","RO":"642","RU":"643","RW":"646","KN":"659","LC":"662","VC":"670","WS":"882","SM":"674",
+            "ST":"678","SA":"682","SN":"686","RS":"688","SC":"690","SL":"694","SG":"702","SK":"703","SI":"705","SB":"090",
+            "SO":"706","ZA":"710","SS":"728","ES":"724","LK":"144","SD":"729","SR":"740","SE":"752","CH":"756","SY":"760",
+            "TW":"158","TJ":"762","TZ":"834","TH":"764","TL":"626","TG":"768","TO":"776","TT":"780","TN":"788","TR":"792",
+            "TM":"795","TV":"798","UG":"800","UA":"804","AE":"784","GB":"826","US":"840","UY":"858","UZ":"860","VU":"548",
+            "VE":"862","VN":"704","YE":"887","ZM":"894","ZW":"716","XK":"010","PS":"275","HK":"344","MO":"446",
+            "PR":"630","RE":"638","GP":"312","MQ":"474","GF":"254","NC":"540","PF":"258","GL":"304","FO":"234",
+            "GI":"292","BM":"060","KY":"136","CW":"531","AW":"533","SX":"534","TC":"796","VG":"092","VI":"850",
+            "GU":"316","MP":"580","JE":"832","GG":"831","IM":"833","AX":"248","BL":"652","MF":"663","PM":"666",
+            "WF":"876","YT":"175","EH":"732","CK":"184","NU":"570","TK":"772","MS":"500","SH":"654","FK":"238",
+            "GS":"239","AQ":"010","BV":"074","HM":"334","IO":"086","PN":"612","CC":"166","CX":"162","NF":"574",
+            "SJ":"744","UM":"581"
+        };
+
+        function createCountryMap(countryData, worldData) {
+            const width = 900;
+            const height = 500;
+
+            const countryByNumeric = {};
+            countryData.forEach(d => {
+                const numeric = alpha2ToNumeric[d.countryCode];
+                if (numeric) {
+                    countryByNumeric[numeric] = d.deviceCount;
+                }
+            });
+
+            const countries = topojson.feature(worldData, worldData.objects.countries);
+
+            const maxCount = d3.max(countryData, d => d.deviceCount) || 1;
+            const color = d3.scaleSequential(d3.interpolateBlues)
+                .domain([0, maxCount]);
+
+            const projection = d3.geoNaturalEarth1()
+                .fitSize([width, height], countries);
+            const path = d3.geoPath().projection(projection);
+
+            const svg = d3.select("#country-chart")
+                .append("svg")
+                .attr("width", width)
+                .attr("height", height)
+                .attr("viewBox", `0 0 ${width} ${height}`)
+                .style("max-width", "100%")
+                .style("height", "auto");
+
+            svg.selectAll("path")
+                .data(countries.features)
+                .join("path")
+                .attr("d", path)
+                .attr("class", "country-path")
+                .attr("fill", d => {
+                    const count = countryByNumeric[d.id];
+                    return count ? color(count) : "#eee";
+                })
+                .on("mouseover", function(event, d) {
+                    const count = countryByNumeric[d.id] || 0;
+                    const name = d.properties.name || "Unknown";
+                    tooltip.style("display", "block")
+                        .html(`<strong>${name}</strong><br>${count.toLocaleString()} devices`);
+                })
+                .on("mousemove", function(event) {
+                    tooltip.style("left", (event.pageX + 10) + "px")
+                        .style("top", (event.pageY - 28) + "px");
+                })
+                .on("mouseout", function() {
+                    tooltip.style("display", "none");
+                });
+
+            // Gradient legend bar
+            const legendContainer = d3.select("#country-map-legend");
+            const defs = svg.append("defs");
+            const linearGradient = defs.append("linearGradient")
+                .attr("id", "country-gradient");
+            linearGradient.append("stop")
+                .attr("offset", "0%")
+                .attr("stop-color", color(0));
+            linearGradient.append("stop")
+                .attr("offset", "100%")
+                .attr("stop-color", color(maxCount));
+
+            legendContainer.html("");
+            legendContainer.append("span").text("0");
+            const bar = legendContainer.append("div")
+                .attr("class", "map-legend-bar");
+            bar.style("background", `linear-gradient(to right, ${color(0)}, ${color(maxCount)})`);
+            legendContainer.append("span").text(maxCount.toLocaleString());
+
+            // Top 10 countries text legend
+            const sorted = countryData.slice().sort((a, b) => b.deviceCount - a.deviceCount).slice(0, 10);
+            const legendDiv = d3.select("#country-legend");
+            legendDiv.html("");
+            sorted.forEach(d => {
+                const item = legendDiv.append("div")
+                    .attr("class", "legend-item");
+                item.append("div")
+                    .attr("class", "legend-color")
+                    .style("background-color", color(d.deviceCount));
+                item.append("span")
+                    .text(`${d.countryCode} (${d.deviceCount.toLocaleString()} devices)`);
+            });
+        }
+
+        // Fetch country data and world topology
+        Promise.all([
+            fetch("/api/stats/country").then(r => {
+                if (!r.ok) throw new Error("Failed to load country data");
+                return r.json();
+            }),
+            fetch("https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json").then(r => {
+                if (!r.ok) throw new Error("Failed to load world map data");
+                return r.json();
+            })
+        ]).then(([countryData, worldData]) => {
+            document.getElementById("country-loading").style.display = "none";
+            createCountryMap(countryData, worldData);
+        }).catch(error => {
+            document.getElementById("country-loading").style.display = "none";
+            const errorDiv = document.getElementById("country-error");
+            errorDiv.style.display = "block";
+            errorDiv.textContent = "Error loading country data: " + error.message;
+        });
         
     </script>
 </body>
