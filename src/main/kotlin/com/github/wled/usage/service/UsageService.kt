@@ -2,15 +2,18 @@ package com.github.wled.usage.service
 
 import com.github.wled.usage.dto.UpgradeEventRequest
 import com.github.wled.usage.entity.Device
+import com.github.wled.usage.entity.ReleaseNameEvent
 import com.github.wled.usage.entity.UpgradeEvent
 import com.github.wled.usage.repository.DeviceRepository
+import com.github.wled.usage.repository.ReleaseNameEventRepository
 import com.github.wled.usage.repository.UpgradeEventRepository
 import org.springframework.stereotype.Service
 
 @Service
 class UsageService(
     val deviceRepository: DeviceRepository,
-    val upgradeEventRepository: UpgradeEventRepository
+    val upgradeEventRepository: UpgradeEventRepository,
+    val releaseNameEventRepository: ReleaseNameEventRepository
 ) {
     
     companion object {
@@ -68,6 +71,16 @@ class UsageService(
                 newVersion = request.version
             )
             upgradeEventRepository.save(upgradeEvent)
+
+            if (device.releaseName != request.releaseName) {
+                val releaseNameEvent = ReleaseNameEvent(
+                    device = device,
+                    oldReleaseName = device.releaseName,
+                    newReleaseName = request.releaseName,
+                    deviceLastUpdate = device.lastUpdate
+                )
+                releaseNameEventRepository.save(releaseNameEvent)
+            }
         }
         
         device.releaseName = request.releaseName

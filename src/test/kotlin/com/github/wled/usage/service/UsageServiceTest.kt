@@ -2,20 +2,24 @@ package com.github.wled.usage.service
 
 import com.github.wled.usage.dto.UpgradeEventRequest
 import com.github.wled.usage.entity.Device
+import com.github.wled.usage.entity.ReleaseNameEvent
 import com.github.wled.usage.entity.UpgradeEvent
 import com.github.wled.usage.repository.DeviceRepository
+import com.github.wled.usage.repository.ReleaseNameEventRepository
 import com.github.wled.usage.repository.UpgradeEventRepository
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNull
 import org.mockito.kotlin.*
+import java.time.LocalDateTime
 import java.util.Optional
 
 class UsageServiceTest {
 
     private val deviceRepository: DeviceRepository = mock()
     private val upgradeEventRepository: UpgradeEventRepository = mock()
-    private val usageService = UsageService(deviceRepository, upgradeEventRepository)
+    private val releaseNameEventRepository: ReleaseNameEventRepository = mock()
+    private val usageService = UsageService(deviceRepository, upgradeEventRepository, releaseNameEventRepository)
 
     @Test
     fun `should set ledCount and isMatrix to null for fresh install with empty previousVersion`() {
@@ -284,5 +288,93 @@ class UsageServiceTest {
         assertEquals("1.0.0", savedDevice.version)
         assertEquals("stable", savedDevice.releaseName)
         // Note: timestamps are set by @CreationTimestamp and @UpdateTimestamp when persisted to DB
+    }
+
+    @Test
+    fun `should create ReleaseNameEvent when release name changes for existing device`() {
+        val lastUpdated = LocalDateTime.of(2025, 12, 1, 10, 0, 0)
+        val existingDevice = Device(
+            id = "test-device-11",
+            version = "0.9.0",
+            releaseName = "beta",
+            chip = "ESP32",
+            ledCount = 50,
+            isMatrix = false,
+            bootloaderSHA256 = "oldsha",
+            lastUpdate = lastUpdated
+        )
+
+        val request = UpgradeEventRequest(
+            deviceId = "test-device-11",
+            version = "1.0.0",
+            previousVersion = "0.9.0",
+            releaseName = "stable",
+            chip = "ESP32",
+            ledCount = 50,
+            isMatrix = false,
+            bootloaderSHA256 = "newsha"
+        )
+
+        whenever(deviceRepository.findById("test-device-11")).thenReturn(Optional.of(existingDevice))
+
+        usageService.recordUpgradeEvent(request, null)
+
+        val releaseNameEventCaptor = argumentCaptor<ReleaseNameEvent>()
+        verify(releaseNameEventRepository).save(releaseNameEventCaptor.capture())
+
+        val savedEvent = releaseNameEventCaptor.firstValue
+        assertEquals("beta", savedEvent.oldReleaseName)
+        assertEquals("stable", savedEvent.newReleaseName)
+        assertEquals(lastUpdated, savedEvent.deviceLastUpdate)
+    }
+
+    @Test
+    fun `should not create ReleaseNameEvent when release name is unchanged for existing device`() {
+        val existingDevice = Device(
+            id = "test-device-12",
+            version = "0.9.0",
+            releaseName = "stable",
+            chip = "ESP32",
+            ledCount = 50,
+            isMatrix = false,
+            bootloaderSHA256 = "oldsha"
+        )
+
+        val request = UpgradeEventRequest(
+            deviceId = "test-device-12",
+            version = "1.0.0",
+            previousVersion = "0.9.0",
+            releaseName = "stable",
+            chip = "ESP32",
+            ledCount = 50,
+            isMatrix = false,
+            bootloaderSHA256 = "newsha"
+        )
+
+        whenever(deviceRepository.findById("test-device-12")).thenReturn(Optional.of(existingDevice))
+
+        usageService.recordUpgradeEvent(request, null)
+
+        verify(releaseNameEventRepository, never()).save(any())
+    }
+
+    @Test
+    fun `should not create ReleaseNameEvent for new device even when release name is present`() {
+        val request = UpgradeEventRequest(
+            deviceId = "test-device-13",
+            version = "1.0.0",
+            previousVersion = "0.9.0",
+            releaseName = "stable",
+            chip = "ESP32",
+            ledCount = 50,
+            isMatrix = false,
+            bootloaderSHA256 = "abc123"
+        )
+
+        whenever(deviceRepository.findById("test-device-13")).thenReturn(Optional.empty())
+
+        usageService.recordUpgradeEvent(request, null)
+
+        verify(releaseNameEventRepository, never()).save(any())
     }
 }
