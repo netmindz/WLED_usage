@@ -8,3 +8,7 @@ spring:
     database-platform: org.hibernate.dialect.MySQLDialect
     hibernate:
       ddl-auto: none
+
+github:
+  releases:
+    token: ${GITHUB_TOKEN:}
