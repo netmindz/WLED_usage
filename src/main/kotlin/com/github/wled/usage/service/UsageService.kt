@@ -3,9 +3,11 @@ package com.github.wled.usage.service
 import com.github.wled.usage.dto.UpgradeEventRequest
 import com.github.wled.usage.entity.Device
 import com.github.wled.usage.entity.ReleaseNameHistory
+import com.github.wled.usage.entity.RepoHistory
 import com.github.wled.usage.entity.UpgradeEvent
 import com.github.wled.usage.repository.DeviceRepository
 import com.github.wled.usage.repository.ReleaseNameHistoryRepository
+import com.github.wled.usage.repository.RepoHistoryRepository
 import com.github.wled.usage.repository.UpgradeEventRepository
 import org.springframework.stereotype.Service
 
@@ -13,7 +15,8 @@ import org.springframework.stereotype.Service
 class UsageService(
     val deviceRepository: DeviceRepository,
     val upgradeEventRepository: UpgradeEventRepository,
-    val releaseNameHistoryRepository: ReleaseNameHistoryRepository
+    val releaseNameHistoryRepository: ReleaseNameHistoryRepository,
+    val repoHistoryRepository: RepoHistoryRepository
 ) {
     
     companion object {
@@ -79,6 +82,15 @@ class UsageService(
                     deviceLastUpdate = device.lastUpdate
                 )
                 releaseNameHistoryRepository.save(releaseNameHistory)
+            }
+
+            if (device.repo != null && device.repo != request.repo) {
+                val repoHistory = RepoHistory(
+                    device = device,
+                    repo = device.repo!!,
+                    deviceLastUpdate = device.lastUpdate
+                )
+                repoHistoryRepository.save(repoHistory)
             }
         }
         
