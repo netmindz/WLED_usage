@@ -2,10 +2,10 @@ package com.github.wled.usage.service
 
 import com.github.wled.usage.dto.UpgradeEventRequest
 import com.github.wled.usage.entity.Device
-import com.github.wled.usage.entity.ReleaseNameEvent
+import com.github.wled.usage.entity.ReleaseNameHistory
 import com.github.wled.usage.entity.UpgradeEvent
 import com.github.wled.usage.repository.DeviceRepository
-import com.github.wled.usage.repository.ReleaseNameEventRepository
+import com.github.wled.usage.repository.ReleaseNameHistoryRepository
 import com.github.wled.usage.repository.UpgradeEventRepository
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -18,8 +18,8 @@ class UsageServiceTest {
 
     private val deviceRepository: DeviceRepository = mock()
     private val upgradeEventRepository: UpgradeEventRepository = mock()
-    private val releaseNameEventRepository: ReleaseNameEventRepository = mock()
-    private val usageService = UsageService(deviceRepository, upgradeEventRepository, releaseNameEventRepository)
+    private val releaseNameHistoryRepository: ReleaseNameHistoryRepository = mock()
+    private val usageService = UsageService(deviceRepository, upgradeEventRepository, releaseNameHistoryRepository)
 
     @Test
     fun `should set ledCount and isMatrix to null for fresh install with empty previousVersion`() {
@@ -291,7 +291,7 @@ class UsageServiceTest {
     }
 
     @Test
-    fun `should create ReleaseNameEvent when release name changes for existing device`() {
+    fun `should create ReleaseNameHistory when release name changes for existing device`() {
         val lastUpdated = LocalDateTime.of(2025, 12, 1, 10, 0, 0)
         val existingDevice = Device(
             id = "test-device-11",
@@ -319,17 +319,16 @@ class UsageServiceTest {
 
         usageService.recordUpgradeEvent(request, null)
 
-        val releaseNameEventCaptor = argumentCaptor<ReleaseNameEvent>()
-        verify(releaseNameEventRepository).save(releaseNameEventCaptor.capture())
+        val releaseNameHistoryCaptor = argumentCaptor<ReleaseNameHistory>()
+        verify(releaseNameHistoryRepository).save(releaseNameHistoryCaptor.capture())
 
-        val savedEvent = releaseNameEventCaptor.firstValue
-        assertEquals("beta", savedEvent.oldReleaseName)
-        assertEquals("stable", savedEvent.newReleaseName)
-        assertEquals(lastUpdated, savedEvent.deviceLastUpdate)
+        val savedHistory = releaseNameHistoryCaptor.firstValue
+        assertEquals("beta", savedHistory.releaseName)
+        assertEquals(lastUpdated, savedHistory.deviceLastUpdate)
     }
 
     @Test
-    fun `should not create ReleaseNameEvent when release name is unchanged for existing device`() {
+    fun `should not create ReleaseNameHistory when release name is unchanged for existing device`() {
         val existingDevice = Device(
             id = "test-device-12",
             version = "0.9.0",
@@ -355,11 +354,11 @@ class UsageServiceTest {
 
         usageService.recordUpgradeEvent(request, null)
 
-        verify(releaseNameEventRepository, never()).save(any())
+        verify(releaseNameHistoryRepository, never()).save(any())
     }
 
     @Test
-    fun `should not create ReleaseNameEvent for new device even when release name is present`() {
+    fun `should not create ReleaseNameHistory for new device even when release name is present`() {
         val request = UpgradeEventRequest(
             deviceId = "test-device-13",
             version = "1.0.0",
@@ -375,6 +374,6 @@ class UsageServiceTest {
 
         usageService.recordUpgradeEvent(request, null)
 
-        verify(releaseNameEventRepository, never()).save(any())
+        verify(releaseNameHistoryRepository, never()).save(any())
     }
 }

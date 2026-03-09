@@ -5,7 +5,7 @@ import org.hibernate.annotations.CreationTimestamp
 import java.time.LocalDateTime
 
 @Entity
-data class ReleaseNameEvent(
+data class ReleaseNameHistory(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     val id: Long? = null,
@@ -14,8 +14,7 @@ data class ReleaseNameEvent(
     @JoinColumn(name = "device_id", nullable = false)
     val device: Device,
 
-    val oldReleaseName: String,
-    val newReleaseName: String,
+    val releaseName: String,
 
     val deviceLastUpdate: LocalDateTime? = null,
 
