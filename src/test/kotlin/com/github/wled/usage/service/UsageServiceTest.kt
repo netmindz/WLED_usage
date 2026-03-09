@@ -3,9 +3,11 @@ package com.github.wled.usage.service
 import com.github.wled.usage.dto.UpgradeEventRequest
 import com.github.wled.usage.entity.Device
 import com.github.wled.usage.entity.ReleaseNameHistory
+import com.github.wled.usage.entity.RepoHistory
 import com.github.wled.usage.entity.UpgradeEvent
 import com.github.wled.usage.repository.DeviceRepository
 import com.github.wled.usage.repository.ReleaseNameHistoryRepository
+import com.github.wled.usage.repository.RepoHistoryRepository
 import com.github.wled.usage.repository.UpgradeEventRepository
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -19,7 +21,8 @@ class UsageServiceTest {
     private val deviceRepository: DeviceRepository = mock()
     private val upgradeEventRepository: UpgradeEventRepository = mock()
     private val releaseNameHistoryRepository: ReleaseNameHistoryRepository = mock()
-    private val usageService = UsageService(deviceRepository, upgradeEventRepository, releaseNameHistoryRepository)
+    private val repoHistoryRepository: RepoHistoryRepository = mock()
+    private val usageService = UsageService(deviceRepository, upgradeEventRepository, releaseNameHistoryRepository, repoHistoryRepository)
 
     @Test
     fun `should set ledCount and isMatrix to null for fresh install with empty previousVersion`() {
@@ -375,5 +378,129 @@ class UsageServiceTest {
         usageService.recordUpgradeEvent(request, null)
 
         verify(releaseNameHistoryRepository, never()).save(any())
+    }
+
+    @Test
+    fun `should create RepoHistory when repo changes for existing device`() {
+        val lastUpdated = LocalDateTime.of(2026, 3, 9, 10, 0, 0)
+        val existingDevice = Device(
+            id = "test-device-14",
+            version = "0.9.0",
+            releaseName = "stable",
+            chip = "ESP32",
+            ledCount = 50,
+            isMatrix = false,
+            bootloaderSHA256 = "oldsha",
+            repo = "owner/old-repo",
+            lastUpdate = lastUpdated
+        )
+
+        val request = UpgradeEventRequest(
+            deviceId = "test-device-14",
+            version = "1.0.0",
+            previousVersion = "0.9.0",
+            releaseName = "stable",
+            chip = "ESP32",
+            ledCount = 50,
+            isMatrix = false,
+            bootloaderSHA256 = "newsha",
+            repo = "owner/new-repo"
+        )
+
+        whenever(deviceRepository.findById("test-device-14")).thenReturn(Optional.of(existingDevice))
+
+        usageService.recordUpgradeEvent(request, null)
+
+        val repoHistoryCaptor = argumentCaptor<RepoHistory>()
+        verify(repoHistoryRepository).save(repoHistoryCaptor.capture())
+
+        val savedHistory = repoHistoryCaptor.firstValue
+        assertEquals("owner/old-repo", savedHistory.repo)
+        assertEquals(lastUpdated, savedHistory.deviceLastUpdate)
+    }
+
+    @Test
+    fun `should not create RepoHistory when repo is unchanged for existing device`() {
+        val existingDevice = Device(
+            id = "test-device-15",
+            version = "0.9.0",
+            releaseName = "stable",
+            chip = "ESP32",
+            ledCount = 50,
+            isMatrix = false,
+            bootloaderSHA256 = "oldsha",
+            repo = "owner/my-repo"
+        )
+
+        val request = UpgradeEventRequest(
+            deviceId = "test-device-15",
+            version = "1.0.0",
+            previousVersion = "0.9.0",
+            releaseName = "stable",
+            chip = "ESP32",
+            ledCount = 50,
+            isMatrix = false,
+            bootloaderSHA256 = "newsha",
+            repo = "owner/my-repo"
+        )
+
+        whenever(deviceRepository.findById("test-device-15")).thenReturn(Optional.of(existingDevice))
+
+        usageService.recordUpgradeEvent(request, null)
+
+        verify(repoHistoryRepository, never()).save(any())
+    }
+
+    @Test
+    fun `should not create RepoHistory when repo changes from null to a value for existing device`() {
+        val existingDevice = Device(
+            id = "test-device-16",
+            version = "0.9.0",
+            releaseName = "stable",
+            chip = "ESP32",
+            ledCount = 50,
+            isMatrix = false,
+            bootloaderSHA256 = "oldsha",
+            repo = null
+        )
+
+        val request = UpgradeEventRequest(
+            deviceId = "test-device-16",
+            version = "1.0.0",
+            previousVersion = "0.9.0",
+            releaseName = "stable",
+            chip = "ESP32",
+            ledCount = 50,
+            isMatrix = false,
+            bootloaderSHA256 = "newsha",
+            repo = "owner/new-repo"
+        )
+
+        whenever(deviceRepository.findById("test-device-16")).thenReturn(Optional.of(existingDevice))
+
+        usageService.recordUpgradeEvent(request, null)
+
+        verify(repoHistoryRepository, never()).save(any())
+    }
+
+    @Test
+    fun `should not create RepoHistory for new device`() {
+        val request = UpgradeEventRequest(
+            deviceId = "test-device-17",
+            version = "1.0.0",
+            previousVersion = "0.9.0",
+            releaseName = "stable",
+            chip = "ESP32",
+            ledCount = 50,
+            isMatrix = false,
+            bootloaderSHA256 = "abc123",
+            repo = "owner/my-repo"
+        )
+
+        whenever(deviceRepository.findById("test-device-17")).thenReturn(Optional.empty())
+
+        usageService.recordUpgradeEvent(request, null)
+
+        verify(repoHistoryRepository, never()).save(any())
     }
 }
