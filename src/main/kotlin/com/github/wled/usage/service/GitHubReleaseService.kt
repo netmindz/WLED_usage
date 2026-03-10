@@ -89,6 +89,11 @@ class GitHubReleaseService(
                     asset.downloadCount
                 }
 
+                if (asset.downloadCount == 0L || delta == 0L) {
+                    logger.debug("Skipping snapshot for $repoName/${release.tagName}/${asset.name} on $today: downloadCount=${asset.downloadCount}, delta=$delta")
+                    return@forEach
+                }
+
                 val snapshot = ReleaseDownloadSnapshot(
                     repoName = repoName,
                     tagName = release.tagName,

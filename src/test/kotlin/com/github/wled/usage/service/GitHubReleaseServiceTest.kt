@@ -97,7 +97,7 @@ class GitHubReleaseServiceTest {
     }
 
     @Test
-    fun `processAndStoreSnapshots should store delta as zero when download count does not increase`() {
+    fun `processAndStoreSnapshots should not save snapshot when delta is zero`() {
         val previousSnapshot = ReleaseDownloadSnapshot(
             id = 1L,
             repoName = repoName,
@@ -122,9 +122,26 @@ class GitHubReleaseServiceTest {
 
         gitHubReleaseService.processAndStoreSnapshots(releases, repoName)
 
-        val captor = argumentCaptor<ReleaseDownloadSnapshot>()
-        verify(releaseDownloadSnapshotRepository).save(captor.capture())
-        assertEquals(0L, captor.firstValue.delta)
+        verify(releaseDownloadSnapshotRepository, never()).save(any())
+    }
+
+    @Test
+    fun `processAndStoreSnapshots should not save snapshot when download count is zero`() {
+        val releases = listOf(
+            GitHubRelease(
+                tagName = "v0.14.2",
+                assets = listOf(GitHubAsset(name = "WLED_0.14.2_ESP32.bin", downloadCount = 0L))
+            )
+        )
+
+        whenever(releaseDownloadSnapshotRepository.existsByRepoNameAndTagNameAndAssetNameAndSnapshotDate(any(), any(), any(), any()))
+            .thenReturn(false)
+        whenever(releaseDownloadSnapshotRepository.findTopByRepoNameAndTagNameAndAssetNameOrderBySnapshotDateDesc(any(), any(), any()))
+            .thenReturn(null)
+
+        gitHubReleaseService.processAndStoreSnapshots(releases, repoName)
+
+        verify(releaseDownloadSnapshotRepository, never()).save(any())
     }
 
     @Test
