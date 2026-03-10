@@ -12,6 +12,7 @@ import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Service
 import org.springframework.web.client.RestClient
 import java.time.LocalDate
+import java.time.LocalTime
 
 data class GitHubRelease(
     @JsonProperty("tag_name") val tagName: String,
@@ -68,10 +69,12 @@ class GitHubReleaseService(
 
     internal fun processAndStoreSnapshots(releases: List<GitHubRelease>, repoName: String) {
         val today = LocalDate.now()
+        val startOfDay = today.atStartOfDay()
+        val endOfDay = today.atTime(LocalTime.MAX)
         releases.forEach { release ->
             release.assets.forEach { asset ->
-                if (releaseDownloadSnapshotRepository.existsByRepoNameAndTagNameAndAssetNameAndSnapshotDate(
-                        repoName, release.tagName, asset.name, today
+                if (releaseDownloadSnapshotRepository.existsByRepoNameAndTagNameAndAssetNameAndCreatedBetween(
+                        repoName, release.tagName, asset.name, startOfDay, endOfDay
                     )
                 ) {
                     logger.debug("Snapshot already exists for $repoName/${release.tagName}/${asset.name} on $today, skipping")
@@ -79,7 +82,7 @@ class GitHubReleaseService(
                 }
 
                 val previousSnapshot = releaseDownloadSnapshotRepository
-                    .findTopByRepoNameAndTagNameAndAssetNameOrderBySnapshotDateDesc(
+                    .findTopByRepoNameAndTagNameAndAssetNameOrderByCreatedDesc(
                         repoName, release.tagName, asset.name
                     )
 
@@ -99,8 +102,7 @@ class GitHubReleaseService(
                     tagName = release.tagName,
                     assetName = asset.name,
                     downloadCount = asset.downloadCount,
-                    delta = delta,
-                    snapshotDate = today
+                    delta = delta
                 )
                 releaseDownloadSnapshotRepository.save(snapshot)
             }
@@ -115,7 +117,7 @@ class GitHubReleaseService(
                 assetName = it.assetName,
                 downloadCount = it.downloadCount,
                 delta = it.delta,
-                snapshotDate = it.snapshotDate.toString()
+                created = it.created?.toString() ?: ""
             )
         }
     }

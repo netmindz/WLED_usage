@@ -5,11 +5,9 @@ CREATE TABLE release_download_snapshot (
     asset_name VARCHAR(255) NOT NULL,
     download_count BIGINT NOT NULL,
     delta BIGINT NOT NULL,
-    snapshot_date DATE NOT NULL,
-    created DATETIME,
-    CONSTRAINT pk_release_download_snapshot PRIMARY KEY (id),
-    CONSTRAINT uq_release_download_snapshot UNIQUE (repo_name, tag_name, asset_name, snapshot_date)
+    created DATETIME NOT NULL,
+    CONSTRAINT pk_release_download_snapshot PRIMARY KEY (id)
 );
 
 CREATE INDEX idx_rds_repo_tag_asset ON release_download_snapshot (repo_name, tag_name, asset_name);
-CREATE INDEX idx_rds_snapshot_date ON release_download_snapshot (snapshot_date);
+CREATE INDEX idx_rds_created ON release_download_snapshot (created);

@@ -7,7 +7,7 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.mockito.kotlin.*
-import java.time.LocalDate
+import java.time.LocalDateTime
 
 class GitHubReleaseServiceTest {
 
@@ -19,7 +19,7 @@ class GitHubReleaseServiceTest {
         token = ""
     )
 
-    private val today = LocalDate.now()
+    private val now = LocalDateTime.now()
     private val repoName = "Aircoookie/WLED"
 
     @Test
@@ -31,9 +31,9 @@ class GitHubReleaseServiceTest {
             )
         )
 
-        whenever(releaseDownloadSnapshotRepository.existsByRepoNameAndTagNameAndAssetNameAndSnapshotDate(any(), any(), any(), any()))
+        whenever(releaseDownloadSnapshotRepository.existsByRepoNameAndTagNameAndAssetNameAndCreatedBetween(any(), any(), any(), any(), any()))
             .thenReturn(false)
-        whenever(releaseDownloadSnapshotRepository.findTopByRepoNameAndTagNameAndAssetNameOrderBySnapshotDateDesc(any(), any(), any()))
+        whenever(releaseDownloadSnapshotRepository.findTopByRepoNameAndTagNameAndAssetNameOrderByCreatedDesc(any(), any(), any()))
             .thenReturn(null)
 
         gitHubReleaseService.processAndStoreSnapshots(releases, repoName)
@@ -56,7 +56,7 @@ class GitHubReleaseServiceTest {
             assetName = "WLED_0.14.2_ESP32.bin",
             downloadCount = 800L,
             delta = 800L,
-            snapshotDate = today.minusDays(1)
+            created = now.minusDays(1)
         )
         val releases = listOf(
             GitHubRelease(
@@ -65,9 +65,9 @@ class GitHubReleaseServiceTest {
             )
         )
 
-        whenever(releaseDownloadSnapshotRepository.existsByRepoNameAndTagNameAndAssetNameAndSnapshotDate(any(), any(), any(), any()))
+        whenever(releaseDownloadSnapshotRepository.existsByRepoNameAndTagNameAndAssetNameAndCreatedBetween(any(), any(), any(), any(), any()))
             .thenReturn(false)
-        whenever(releaseDownloadSnapshotRepository.findTopByRepoNameAndTagNameAndAssetNameOrderBySnapshotDateDesc(
+        whenever(releaseDownloadSnapshotRepository.findTopByRepoNameAndTagNameAndAssetNameOrderByCreatedDesc(
             repoName, "v0.14.2", "WLED_0.14.2_ESP32.bin"
         )).thenReturn(previousSnapshot)
 
@@ -88,7 +88,7 @@ class GitHubReleaseServiceTest {
             )
         )
 
-        whenever(releaseDownloadSnapshotRepository.existsByRepoNameAndTagNameAndAssetNameAndSnapshotDate(any(), any(), any(), any()))
+        whenever(releaseDownloadSnapshotRepository.existsByRepoNameAndTagNameAndAssetNameAndCreatedBetween(any(), any(), any(), any(), any()))
             .thenReturn(true)
 
         gitHubReleaseService.processAndStoreSnapshots(releases, repoName)
@@ -105,7 +105,7 @@ class GitHubReleaseServiceTest {
             assetName = "WLED_0.14.2_ESP32.bin",
             downloadCount = 1000L,
             delta = 200L,
-            snapshotDate = today.minusDays(1)
+            created = now.minusDays(1)
         )
         val releases = listOf(
             GitHubRelease(
@@ -114,9 +114,9 @@ class GitHubReleaseServiceTest {
             )
         )
 
-        whenever(releaseDownloadSnapshotRepository.existsByRepoNameAndTagNameAndAssetNameAndSnapshotDate(any(), any(), any(), any()))
+        whenever(releaseDownloadSnapshotRepository.existsByRepoNameAndTagNameAndAssetNameAndCreatedBetween(any(), any(), any(), any(), any()))
             .thenReturn(false)
-        whenever(releaseDownloadSnapshotRepository.findTopByRepoNameAndTagNameAndAssetNameOrderBySnapshotDateDesc(
+        whenever(releaseDownloadSnapshotRepository.findTopByRepoNameAndTagNameAndAssetNameOrderByCreatedDesc(
             repoName, "v0.14.2", "WLED_0.14.2_ESP32.bin"
         )).thenReturn(previousSnapshot)
 
@@ -134,9 +134,9 @@ class GitHubReleaseServiceTest {
             )
         )
 
-        whenever(releaseDownloadSnapshotRepository.existsByRepoNameAndTagNameAndAssetNameAndSnapshotDate(any(), any(), any(), any()))
+        whenever(releaseDownloadSnapshotRepository.existsByRepoNameAndTagNameAndAssetNameAndCreatedBetween(any(), any(), any(), any(), any()))
             .thenReturn(false)
-        whenever(releaseDownloadSnapshotRepository.findTopByRepoNameAndTagNameAndAssetNameOrderBySnapshotDateDesc(any(), any(), any()))
+        whenever(releaseDownloadSnapshotRepository.findTopByRepoNameAndTagNameAndAssetNameOrderByCreatedDesc(any(), any(), any()))
             .thenReturn(null)
 
         gitHubReleaseService.processAndStoreSnapshots(releases, repoName)
@@ -160,9 +160,9 @@ class GitHubReleaseServiceTest {
             )
         )
 
-        whenever(releaseDownloadSnapshotRepository.existsByRepoNameAndTagNameAndAssetNameAndSnapshotDate(any(), any(), any(), any()))
+        whenever(releaseDownloadSnapshotRepository.existsByRepoNameAndTagNameAndAssetNameAndCreatedBetween(any(), any(), any(), any(), any()))
             .thenReturn(false)
-        whenever(releaseDownloadSnapshotRepository.findTopByRepoNameAndTagNameAndAssetNameOrderBySnapshotDateDesc(any(), any(), any()))
+        whenever(releaseDownloadSnapshotRepository.findTopByRepoNameAndTagNameAndAssetNameOrderByCreatedDesc(any(), any(), any()))
             .thenReturn(null)
 
         gitHubReleaseService.processAndStoreSnapshots(releases, repoName)
@@ -176,7 +176,7 @@ class GitHubReleaseServiceTest {
             GitHubRelease(tagName = "v0.14.2", assets = emptyList())
         )
 
-        whenever(releaseDownloadSnapshotRepository.existsByRepoNameAndTagNameAndAssetNameAndSnapshotDate(any(), any(), any(), any()))
+        whenever(releaseDownloadSnapshotRepository.existsByRepoNameAndTagNameAndAssetNameAndCreatedBetween(any(), any(), any(), any(), any()))
             .thenReturn(false)
 
         gitHubReleaseService.processAndStoreSnapshots(releases, repoName)
@@ -212,7 +212,7 @@ class GitHubReleaseServiceTest {
                 assetName = "WLED_0.14.2_ESP32.bin",
                 downloadCount = 1000L,
                 delta = 200L,
-                snapshotDate = today
+                created = now
             )
         )
 
@@ -226,7 +226,7 @@ class GitHubReleaseServiceTest {
         assertEquals("WLED_0.14.2_ESP32.bin", result[0].assetName)
         assertEquals(1000L, result[0].downloadCount)
         assertEquals(200L, result[0].delta)
-        assertEquals(today.toString(), result[0].snapshotDate)
+        assertEquals(now.toString(), result[0].created)
     }
 
     @Test

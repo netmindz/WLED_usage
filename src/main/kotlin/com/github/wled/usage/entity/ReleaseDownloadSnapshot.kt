@@ -5,7 +5,6 @@ import jakarta.persistence.GeneratedValue
 import jakarta.persistence.GenerationType
 import jakarta.persistence.Id
 import org.hibernate.annotations.CreationTimestamp
-import java.time.LocalDate
 import java.time.LocalDateTime
 
 @Entity
@@ -19,7 +18,6 @@ data class ReleaseDownloadSnapshot(
     val assetName: String,
     val downloadCount: Long,
     val delta: Long,
-    val snapshotDate: LocalDate,
 
     @CreationTimestamp
     val created: LocalDateTime? = null
