@@ -26,9 +26,9 @@ class ReleaseDownloadStatsControllerTest {
     @Test
     fun `getReleaseDownloadStats should return list of release download statistics`() {
         val mockStats = listOf(
-            ReleaseDownloadStats("Aircoookie/WLED", "v0.14.2", "WLED_0.14.2_ESP32.bin", 10000L, 250L, "2026-03-09"),
-            ReleaseDownloadStats("Aircoookie/WLED", "v0.14.2", "WLED_0.14.2_ESP8266.bin", 5000L, 100L, "2026-03-09"),
-            ReleaseDownloadStats("Aircoookie/WLED", "v0.14.1", "WLED_0.14.1_ESP32.bin", 20000L, 50L, "2026-03-09")
+            ReleaseDownloadStats("Aircoookie/WLED", "v0.14.2", "WLED_0.14.2_ESP32.bin", 10000L, 250L, "2026-03-09T00:00:00"),
+            ReleaseDownloadStats("Aircoookie/WLED", "v0.14.2", "WLED_0.14.2_ESP8266.bin", 5000L, 100L, "2026-03-09T00:00:00"),
+            ReleaseDownloadStats("Aircoookie/WLED", "v0.14.1", "WLED_0.14.1_ESP32.bin", 20000L, 50L, "2026-03-09T00:00:00")
         )
 
         whenever(gitHubReleaseService.getReleaseDownloadStats()).thenReturn(mockStats)
@@ -44,7 +44,7 @@ class ReleaseDownloadStatsControllerTest {
             .andExpect(jsonPath("$[0].assetName").value("WLED_0.14.2_ESP32.bin"))
             .andExpect(jsonPath("$[0].downloadCount").value(10000))
             .andExpect(jsonPath("$[0].delta").value(250))
-            .andExpect(jsonPath("$[0].snapshotDate").value("2026-03-09"))
+            .andExpect(jsonPath("$[0].created").value("2026-03-09T00:00:00"))
             .andExpect(jsonPath("$[1].tagName").value("v0.14.2"))
             .andExpect(jsonPath("$[1].assetName").value("WLED_0.14.2_ESP8266.bin"))
             .andExpect(jsonPath("$[2].tagName").value("v0.14.1"))

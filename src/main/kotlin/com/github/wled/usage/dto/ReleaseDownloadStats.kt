@@ -6,5 +6,5 @@ data class ReleaseDownloadStats(
     val assetName: String,
     val downloadCount: Long,
     val delta: Long,
-    val snapshotDate: String
+    val created: String
 )
