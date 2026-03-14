@@ -215,6 +215,45 @@ class StatsServiceTest {
     }
 
     @Test
+    fun `getChipOverTimeStats should return empty list when no data exists`() {
+        whenever(upgradeEventRepository.countUpgradeEventsByWeekAndChip(any())).thenReturn(emptyList())
+        whenever(deviceRepository.countNewDevicesByWeekAndChip(any())).thenReturn(emptyList())
+
+        val result = statsService.getChipOverTimeStats()
+
+        assertTrue(result.isEmpty())
+    }
+
+    @Test
+    fun `getChipOverTimeStats should return chip data grouped by week combining upgrades and new installations`() {
+        val upgradeData = listOf(
+            mapOf("weekStart" to "2026-01-05", "chip" to "ESP32", "eventCount" to 10L),
+            mapOf("weekStart" to "2026-01-05", "chip" to "ESP8266", "eventCount" to 5L),
+            mapOf("weekStart" to "2026-01-12", "chip" to "ESP32", "eventCount" to 15L)
+        )
+        val installationData = listOf(
+            mapOf("weekStart" to "2026-01-05", "chip" to "ESP32", "deviceCount" to 3L),
+            mapOf("weekStart" to "2026-01-12", "chip" to "ESP32", "deviceCount" to 7L)
+        )
+
+        whenever(upgradeEventRepository.countUpgradeEventsByWeekAndChip(any())).thenReturn(upgradeData)
+        whenever(deviceRepository.countNewDevicesByWeekAndChip(any())).thenReturn(installationData)
+
+        val result = statsService.getChipOverTimeStats()
+
+        assertEquals(3, result.size)
+        assertEquals("2026-01-05", result[0].week)
+        assertEquals("ESP32", result[0].chip)
+        assertEquals(13L, result[0].count) // 10 upgrades + 3 new installations
+        assertEquals("2026-01-05", result[1].week)
+        assertEquals("ESP8266", result[1].chip)
+        assertEquals(5L, result[1].count)
+        assertEquals("2026-01-12", result[2].week)
+        assertEquals("ESP32", result[2].chip)
+        assertEquals(22L, result[2].count) // 15 upgrades + 7 new installations
+    }
+
+    @Test
     fun `getVersionOverTimeStats should return empty list when no data exists`() {
         whenever(upgradeEventRepository.countUpgradeEventsByWeekAndVersion(any())).thenReturn(emptyList())
         whenever(deviceRepository.countNewDevicesByWeekAndVersion(any())).thenReturn(emptyList())

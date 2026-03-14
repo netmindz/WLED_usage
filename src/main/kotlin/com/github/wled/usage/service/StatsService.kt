@@ -1,6 +1,7 @@
 package com.github.wled.usage.service
 
 import com.github.wled.usage.dto.ChipStats
+import com.github.wled.usage.dto.ChipWeeklyStats
 import com.github.wled.usage.dto.CountryStats
 import com.github.wled.usage.dto.FlashSizeStats
 import com.github.wled.usage.dto.LedCountRangeStats
@@ -163,6 +164,32 @@ class StatsService(
         }
 
         return results
+    }
+
+    fun getChipOverTimeStats(): List<ChipWeeklyStats> {
+        val since = LocalDateTime.now().minusMonths(3)
+
+        val countsByWeekAndChip = mutableMapOf<Pair<String, String>, Long>()
+
+        upgradeEventRepository.countUpgradeEventsByWeekAndChip(since).forEach {
+            val key = Pair(it["weekStart"].toString(), it["chip"] as String)
+            countsByWeekAndChip.merge(key, (it["eventCount"] as Number).toLong(), Long::plus)
+        }
+
+        deviceRepository.countNewDevicesByWeekAndChip(since).forEach {
+            val key = Pair(it["weekStart"].toString(), it["chip"] as String)
+            countsByWeekAndChip.merge(key, (it["deviceCount"] as Number).toLong(), Long::plus)
+        }
+
+        return countsByWeekAndChip.entries
+            .sortedWith(compareBy({ it.key.first }, { it.key.second }))
+            .map { (key, count) ->
+                ChipWeeklyStats(
+                    week = key.first,
+                    chip = key.second,
+                    count = count
+                )
+            }
     }
 
     fun getVersionOverTimeStats(): List<VersionWeeklyStats> {
