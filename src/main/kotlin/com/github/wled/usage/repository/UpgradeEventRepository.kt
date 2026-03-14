@@ -21,4 +21,10 @@ interface UpgradeEventRepository : CrudRepository<UpgradeEvent, Long> {
         nativeQuery = true
     )
     fun countUpgradeEventsByWeekAndVersion(since: LocalDateTime): List<Map<String, Any>>
+
+    @Query(
+        value = "SELECT DATE(DATE_SUB(ue.created, INTERVAL WEEKDAY(ue.created) DAY)) as weekStart, d.chip as chip, COUNT(*) as eventCount FROM upgrade_event ue JOIN device d ON ue.device_id = d.id WHERE ue.created >= :since AND d.chip IS NOT NULL GROUP BY weekStart, d.chip ORDER BY weekStart, d.chip",
+        nativeQuery = true
+    )
+    fun countUpgradeEventsByWeekAndChip(since: LocalDateTime): List<Map<String, Any>>
 }

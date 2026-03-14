@@ -1,6 +1,7 @@
 package com.github.wled.usage.controller
 
 import com.github.wled.usage.dto.ChipStats
+import com.github.wled.usage.dto.ChipWeeklyStats
 import com.github.wled.usage.dto.CountryStats
 import com.github.wled.usage.dto.FlashSizeStats
 import com.github.wled.usage.dto.LedCountRangeStats
@@ -364,6 +365,46 @@ class StatsControllerTest {
 
         mockMvc.perform(
             get("/api/stats/upgrade-vs-installation")
+                .contentType(MediaType.APPLICATION_JSON)
+        )
+            .andExpect(status().isOk)
+            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+            .andExpect(jsonPath("$").isEmpty)
+    }
+
+    @Test
+    fun `getChipOverTimeStats should return weekly chip data`() {
+        val mockStats = listOf(
+            ChipWeeklyStats("2026-01-05", "ESP32", 10),
+            ChipWeeklyStats("2026-01-05", "ESP8266", 5),
+            ChipWeeklyStats("2026-01-12", "ESP32", 15)
+        )
+
+        whenever(statsService.getChipOverTimeStats()).thenReturn(mockStats)
+
+        mockMvc.perform(
+            get("/api/stats/chip-over-time")
+                .contentType(MediaType.APPLICATION_JSON)
+        )
+            .andExpect(status().isOk)
+            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+            .andExpect(jsonPath("$[0].week").value("2026-01-05"))
+            .andExpect(jsonPath("$[0].chip").value("ESP32"))
+            .andExpect(jsonPath("$[0].count").value(10))
+            .andExpect(jsonPath("$[1].week").value("2026-01-05"))
+            .andExpect(jsonPath("$[1].chip").value("ESP8266"))
+            .andExpect(jsonPath("$[1].count").value(5))
+            .andExpect(jsonPath("$[2].week").value("2026-01-12"))
+            .andExpect(jsonPath("$[2].chip").value("ESP32"))
+            .andExpect(jsonPath("$[2].count").value(15))
+    }
+
+    @Test
+    fun `getChipOverTimeStats should return empty list when no data exists`() {
+        whenever(statsService.getChipOverTimeStats()).thenReturn(emptyList())
+
+        mockMvc.perform(
+            get("/api/stats/chip-over-time")
                 .contentType(MediaType.APPLICATION_JSON)
         )
             .andExpect(status().isOk)

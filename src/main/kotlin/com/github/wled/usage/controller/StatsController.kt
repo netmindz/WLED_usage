@@ -1,6 +1,7 @@
 package com.github.wled.usage.controller
 
 import com.github.wled.usage.dto.ChipStats
+import com.github.wled.usage.dto.ChipWeeklyStats
 import com.github.wled.usage.dto.CountryStats
 import com.github.wled.usage.dto.FlashSizeStats
 import com.github.wled.usage.dto.LedCountRangeStats
@@ -62,6 +63,11 @@ class StatsController(val statsService: StatsService) {
     @GetMapping("/upgrade-vs-installation")
     fun getUpgradeVsInstallationStats(): List<UpgradeVsInstallationWeeklyStats> {
         return statsService.getUpgradeVsInstallationStats()
+    }
+
+    @GetMapping("/chip-over-time")
+    fun getChipOverTimeStats(): List<ChipWeeklyStats> {
+        return statsService.getChipOverTimeStats()
     }
 
     @GetMapping("/version-over-time")

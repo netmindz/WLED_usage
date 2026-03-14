@@ -60,4 +60,10 @@ interface DeviceRepository : CrudRepository<Device, String> {
     )
     fun countNewDevicesByWeekAndVersion(since: LocalDateTime): List<Map<String, Any>>
 
+    @Query(
+        value = "SELECT DATE(DATE_SUB(created, INTERVAL WEEKDAY(created) DAY)) as weekStart, chip, COUNT(*) as deviceCount FROM device WHERE created >= :since AND chip IS NOT NULL GROUP BY weekStart, chip ORDER BY weekStart, chip",
+        nativeQuery = true
+    )
+    fun countNewDevicesByWeekAndChip(since: LocalDateTime): List<Map<String, Any>>
+
 }
