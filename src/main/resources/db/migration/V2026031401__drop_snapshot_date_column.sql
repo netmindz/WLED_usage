@@ -1,0 +1,1 @@
+ALTER TABLE release_download_snapshot DROP COLUMN IF EXISTS snapshot_date;
