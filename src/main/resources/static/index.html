@@ -217,11 +217,86 @@
             margin-right: 8px;
             border-radius: 3px;
         }
+        .auth-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            margin-bottom: 20px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .auth-bar .user-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .auth-bar .user-info img {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+        }
+
+        .auth-bar .user-info span {
+            font-weight: bold;
+            color: #333;
+        }
+
+        .auth-bar a, .auth-bar button {
+            background: #333;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 4px;
+            text-decoration: none;
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .auth-bar a:hover, .auth-bar button:hover {
+            background: #555;
+        }
+
+        .repo-filter {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .repo-filter label {
+            font-weight: bold;
+            color: #333;
+        }
+
+        .repo-filter select {
+            padding: 8px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+            font-size: 14px;
+            min-width: 200px;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>WLED Usage Dashboard</h1>
+        <div id="auth-bar" class="auth-bar" style="display: none;">
+            <div id="auth-login">
+                <a href="/oauth2/authorization/github">Login with GitHub</a>
+            </div>
+            <div id="auth-user" class="user-info" style="display: none;">
+                <img id="auth-avatar" src="" alt="avatar">
+                <span id="auth-username"></span>
+                <div class="repo-filter">
+                    <label for="repo-select">Filter by repo:</label>
+                    <select id="repo-select">
+                        <option value="">All Repos</option>
+                    </select>
+                </div>
+                <button id="auth-logout-btn">Logout</button>
+            </div>
+        </div>
         
         <div class="chart-section">
             <div class="chart-title">Device Distribution by Version</div>
@@ -325,6 +400,86 @@
     <div class="tooltip" id="tooltip"></div>
     
     <script>
+        // Current repo filter
+        let currentRepo = '';
+        
+        function getStatsUrl(path) {
+            return currentRepo ? `${path}?repo=${encodeURIComponent(currentRepo)}` : path;
+        }
+
+        // Check authentication status
+        fetch('/api/auth/user')
+            .then(r => r.json())
+            .then(data => {
+                document.getElementById('auth-bar').style.display = 'flex';
+                if (data.authenticated) {
+                    document.getElementById('auth-login').style.display = 'none';
+                    document.getElementById('auth-user').style.display = 'flex';
+                    document.getElementById('auth-avatar').src = data.avatar_url;
+                    document.getElementById('auth-username').textContent = data.login;
+                    
+                    // Fetch repos with write access
+                    fetch('/api/auth/repos')
+                        .then(r => r.json())
+                        .then(repos => {
+                            const select = document.getElementById('repo-select');
+                            repos.forEach(repo => {
+                                const option = document.createElement('option');
+                                option.value = repo;
+                                option.textContent = repo;
+                                select.appendChild(option);
+                            });
+                        })
+                        .catch(err => console.error('Failed to fetch repos:', err));
+
+                    // Handle repo selection change
+                    document.getElementById('repo-select').addEventListener('change', function() {
+                        currentRepo = this.value;
+                        loadAllCharts();
+                    });
+
+                    // Handle logout
+                    document.getElementById('auth-logout-btn').addEventListener('click', function() {
+                        window.location.href = '/api/auth/logout';
+                    });
+                } else {
+                    document.getElementById('auth-login').style.display = 'block';
+                    document.getElementById('auth-user').style.display = 'none';
+                }
+            })
+            .catch(err => {
+                // Auth not available, hide the bar
+                console.log('Auth not available:', err);
+            });
+
+        function loadAllCharts() {
+            // Clear all existing charts and legends
+            document.querySelectorAll('.chart-section').forEach(section => {
+                const chart = section.querySelector('[id$="-chart"]');
+                const legend = section.querySelector('[id$="-legend"]');
+                const mapLegend = section.querySelector('[id$="-map-legend"]');
+                const loading = section.querySelector('[id$="-loading"]');
+                const error = section.querySelector('[id$="-error"]');
+                if (chart) chart.innerHTML = '';
+                if (legend) legend.innerHTML = '';
+                if (mapLegend) mapLegend.innerHTML = '';
+                if (loading) loading.style.display = 'block';
+                if (error) { error.style.display = 'none'; error.textContent = ''; }
+            });
+            loadVersionChart();
+            loadChipChart();
+            loadMatrixChart();
+            loadFlashSizeChart();
+            loadPsramSizeChart();
+            loadReleaseNameChart();
+            loadLedCountChart();
+            loadUpgradeVsInstallationChart();
+            loadVersionOverTimeChart();
+            loadChipOverTimeChart();
+            loadRunningVersionsChart();
+            loadCountryChart();
+        }
+
         // Tooltip
         const tooltip = d3.select("#tooltip");
         
@@ -332,7 +487,8 @@
         const colorScale = d3.scaleOrdinal(d3.schemeTableau10);
         
         // Fetch and display version data
-        fetch('/api/stats/version')
+        function loadVersionChart() {
+        fetch(getStatsUrl('/api/stats/version'))
             .then(response => {
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
@@ -357,6 +513,7 @@
                 document.getElementById('version-error').textContent = 'Error loading version data: ' + error.message;
                 document.getElementById('version-error').style.display = 'block';
             });
+        }
         
         function createPieChart(data) {
             // Limit to top 10 versions for better visualization
@@ -445,7 +602,8 @@
         }
         
         // Fetch and display chip data
-        fetch('/api/stats/chip')
+        function loadChipChart() {
+        fetch(getStatsUrl('/api/stats/chip'))
             .then(response => {
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
@@ -470,6 +628,7 @@
                 document.getElementById('chip-error').textContent = 'Error loading chip data: ' + error.message;
                 document.getElementById('chip-error').style.display = 'block';
             });
+        }
         
         function createChipPieChart(data) {
             // Limit to top 10 chips for better visualization
@@ -558,7 +717,8 @@
         }
         
         // Fetch and display matrix data
-        fetch('/api/stats/matrix')
+        function loadMatrixChart() {
+        fetch(getStatsUrl('/api/stats/matrix'))
             .then(response => {
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
@@ -583,6 +743,7 @@
                 document.getElementById('matrix-error').textContent = 'Error loading matrix data: ' + error.message;
                 document.getElementById('matrix-error').style.display = 'block';
             });
+        }
         
         function createMatrixPieChart(data) {
             // Convert boolean to readable labels
@@ -666,7 +827,8 @@
         }
         
         // Fetch and display flash size data
-        fetch('/api/stats/flash-size')
+        function loadFlashSizeChart() {
+        fetch(getStatsUrl('/api/stats/flash-size'))
             .then(response => {
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
@@ -691,6 +853,7 @@
                 document.getElementById('flash-size-error').textContent = 'Error loading flash size data: ' + error.message;
                 document.getElementById('flash-size-error').style.display = 'block';
             });
+        }
         
         function createFlashSizePieChart(data) {
             // Limit to top 10 flash sizes for better visualization
@@ -779,7 +942,8 @@
         }
         
         // Fetch and display psram size data
-        fetch('/api/stats/psram-size')
+        function loadPsramSizeChart() {
+        fetch(getStatsUrl('/api/stats/psram-size'))
             .then(response => {
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
@@ -804,6 +968,7 @@
                 document.getElementById('psram-size-error').textContent = 'Error loading PSRAM size data: ' + error.message;
                 document.getElementById('psram-size-error').style.display = 'block';
             });
+        }
         
         function createPsramSizePieChart(data) {
             // Limit to top 10 psram sizes for better visualization
@@ -892,7 +1057,8 @@
         }
         
         // Fetch and display release name data
-        fetch('/api/stats/release-name')
+        function loadReleaseNameChart() {
+        fetch(getStatsUrl('/api/stats/release-name'))
             .then(response => {
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
@@ -917,6 +1083,7 @@
                 document.getElementById('release-name-error').textContent = 'Error loading release name data: ' + error.message;
                 document.getElementById('release-name-error').style.display = 'block';
             });
+        }
         
         function createReleaseNamePieChart(data) {
             // Limit to top 10 release names for better visualization
@@ -1005,7 +1172,8 @@
         }
         
         // Fetch and display LED count range data
-        fetch('/api/stats/led-count')
+        function loadLedCountChart() {
+        fetch(getStatsUrl('/api/stats/led-count'))
             .then(response => {
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
@@ -1030,6 +1198,7 @@
                 document.getElementById('led-count-error').textContent = 'Error loading LED count data: ' + error.message;
                 document.getElementById('led-count-error').style.display = 'block';
             });
+        }
         
         function createLedCountPieChart(data) {
             // Limit to top 10 ranges for better visualization
@@ -1118,7 +1287,8 @@
         }
         
         // Fetch and display upgrade vs installation data
-        fetch('/api/stats/upgrade-vs-installation')
+        function loadUpgradeVsInstallationChart() {
+        fetch(getStatsUrl('/api/stats/upgrade-vs-installation'))
             .then(response => {
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
@@ -1142,6 +1312,7 @@
                 document.getElementById('upgrade-vs-installation-error').textContent = 'Error loading upgrade vs installation data: ' + error.message;
                 document.getElementById('upgrade-vs-installation-error').style.display = 'block';
             });
+        }
         
         function createUpgradeVsInstallationChart(data) {
             const margin = {top: 20, right: 30, bottom: 50, left: 60};
@@ -1294,7 +1465,8 @@
         }
         
         // Fetch and display version over time data
-        fetch('/api/stats/version-over-time')
+        function loadVersionOverTimeChart() {
+        fetch(getStatsUrl('/api/stats/version-over-time'))
             .then(response => {
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
@@ -1318,6 +1490,7 @@
                 document.getElementById('version-over-time-error').textContent = 'Error loading version over time data: ' + error.message;
                 document.getElementById('version-over-time-error').style.display = 'block';
             });
+        }
         
         function createVersionOverTimeChart(data) {
             const margin = {top: 20, right: 30, bottom: 50, left: 60};
@@ -1483,7 +1656,8 @@
         }
         
         // Fetch and display chip over time data
-        fetch('/api/stats/chip-over-time')
+        function loadChipOverTimeChart() {
+        fetch(getStatsUrl('/api/stats/chip-over-time'))
             .then(response => {
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
@@ -1507,6 +1681,7 @@
                 document.getElementById('chip-over-time-error').textContent = 'Error loading chip over time data: ' + error.message;
                 document.getElementById('chip-over-time-error').style.display = 'block';
             });
+        }
         
         function createChipOverTimeChart(data) {
             const margin = {top: 20, right: 30, bottom: 50, left: 60};
@@ -1672,7 +1847,8 @@
         }
         
         // Fetch and display running versions data
-        fetch('/api/stats/running-versions')
+        function loadRunningVersionsChart() {
+        fetch(getStatsUrl('/api/stats/running-versions'))
             .then(response => {
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
@@ -1696,6 +1872,7 @@
                 document.getElementById('running-versions-error').textContent = 'Error loading running versions data: ' + error.message;
                 document.getElementById('running-versions-error').style.display = 'block';
             });
+        }
         
         function createRunningVersionsChart(data) {
             const margin = {top: 20, right: 30, bottom: 50, left: 60};
@@ -1976,8 +2153,9 @@
         }
 
         // Fetch country data and world topology
+        function loadCountryChart() {
         Promise.all([
-            fetch("/api/stats/country").then(r => {
+            fetch(getStatsUrl("/api/stats/country")).then(r => {
                 if (!r.ok) throw new Error("Failed to load country data");
                 return r.json();
             }),
@@ -1994,6 +2172,10 @@
             errorDiv.style.display = "block";
             errorDiv.textContent = "Error loading country data: " + error.message;
         });
+        }
+        
+        // Initial load
+        loadAllCharts();
         
     </script>
 </body>
