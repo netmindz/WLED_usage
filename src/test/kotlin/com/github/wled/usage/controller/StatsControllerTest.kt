@@ -495,4 +495,42 @@ class StatsControllerTest {
             .andExpect(content().contentType(MediaType.APPLICATION_JSON))
             .andExpect(jsonPath("$").isEmpty)
     }
+
+    @Test
+    fun `getVersionStats should accept optional repo parameter`() {
+        val mockStats = listOf(
+            VersionStats("0.14.0", 50)
+        )
+
+        whenever(statsService.getDeviceCountByVersion("owner/repo")).thenReturn(mockStats)
+
+        mockMvc.perform(
+            get("/api/stats/version")
+                .param("repo", "owner/repo")
+                .contentType(MediaType.APPLICATION_JSON)
+        )
+            .andExpect(status().isOk)
+            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+            .andExpect(jsonPath("$[0].version").value("0.14.0"))
+            .andExpect(jsonPath("$[0].deviceCount").value(50))
+    }
+
+    @Test
+    fun `getCountryStats should accept optional repo parameter`() {
+        val mockStats = listOf(
+            CountryStats("US", 30)
+        )
+
+        whenever(statsService.getDeviceCountByCountry("owner/repo")).thenReturn(mockStats)
+
+        mockMvc.perform(
+            get("/api/stats/country")
+                .param("repo", "owner/repo")
+                .contentType(MediaType.APPLICATION_JSON)
+        )
+            .andExpect(status().isOk)
+            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+            .andExpect(jsonPath("$[0].countryCode").value("US"))
+            .andExpect(jsonPath("$[0].deviceCount").value(30))
+    }
 }
