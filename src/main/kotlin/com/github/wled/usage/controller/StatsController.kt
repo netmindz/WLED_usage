@@ -14,6 +14,7 @@ import com.github.wled.usage.dto.VersionWeeklyStats
 import com.github.wled.usage.service.StatsService
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.RequestMapping
+import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
 
 @RestController
@@ -21,62 +22,62 @@ import org.springframework.web.bind.annotation.RestController
 class StatsController(val statsService: StatsService) {
 
     @GetMapping("/country")
-    fun getCountryStats(): List<CountryStats> {
-        return statsService.getDeviceCountByCountry()
+    fun getCountryStats(@RequestParam(required = false) repo: String?): List<CountryStats> {
+        return statsService.getDeviceCountByCountry(repo)
     }
     
     @GetMapping("/version")
-    fun getVersionStats(): List<VersionStats> {
-        return statsService.getDeviceCountByVersion()
+    fun getVersionStats(@RequestParam(required = false) repo: String?): List<VersionStats> {
+        return statsService.getDeviceCountByVersion(repo)
     }
     
     @GetMapping("/chip")
-    fun getChipStats(): List<ChipStats> {
-        return statsService.getDeviceCountByChip()
+    fun getChipStats(@RequestParam(required = false) repo: String?): List<ChipStats> {
+        return statsService.getDeviceCountByChip(repo)
     }
     
     @GetMapping("/matrix")
-    fun getMatrixStats(): List<MatrixStats> {
-        return statsService.getDeviceCountByIsMatrix()
+    fun getMatrixStats(@RequestParam(required = false) repo: String?): List<MatrixStats> {
+        return statsService.getDeviceCountByIsMatrix(repo)
     }
     
     @GetMapping("/flash-size")
-    fun getFlashSizeStats(): List<FlashSizeStats> {
-        return statsService.getDeviceCountByFlashSize()
+    fun getFlashSizeStats(@RequestParam(required = false) repo: String?): List<FlashSizeStats> {
+        return statsService.getDeviceCountByFlashSize(repo)
     }
     
     @GetMapping("/psram-size")
-    fun getPsramSizeStats(): List<PsramSizeStats> {
-        return statsService.getDeviceCountByPsramSize()
+    fun getPsramSizeStats(@RequestParam(required = false) repo: String?): List<PsramSizeStats> {
+        return statsService.getDeviceCountByPsramSize(repo)
     }
     
     @GetMapping("/release-name")
-    fun getReleaseNameStats(): List<ReleaseNameStats> {
-        return statsService.getDeviceCountByReleaseName()
+    fun getReleaseNameStats(@RequestParam(required = false) repo: String?): List<ReleaseNameStats> {
+        return statsService.getDeviceCountByReleaseName(repo)
     }
     
     @GetMapping("/led-count")
-    fun getLedCountRangeStats(): List<LedCountRangeStats> {
-        return statsService.getDeviceCountByLedCountRange()
+    fun getLedCountRangeStats(@RequestParam(required = false) repo: String?): List<LedCountRangeStats> {
+        return statsService.getDeviceCountByLedCountRange(repo)
     }
 
     @GetMapping("/upgrade-vs-installation")
-    fun getUpgradeVsInstallationStats(): List<UpgradeVsInstallationWeeklyStats> {
-        return statsService.getUpgradeVsInstallationStats()
+    fun getUpgradeVsInstallationStats(@RequestParam(required = false) repo: String?): List<UpgradeVsInstallationWeeklyStats> {
+        return statsService.getUpgradeVsInstallationStats(repo)
     }
 
     @GetMapping("/chip-over-time")
-    fun getChipOverTimeStats(): List<ChipWeeklyStats> {
-        return statsService.getChipOverTimeStats()
+    fun getChipOverTimeStats(@RequestParam(required = false) repo: String?): List<ChipWeeklyStats> {
+        return statsService.getChipOverTimeStats(repo)
     }
 
     @GetMapping("/version-over-time")
-    fun getVersionOverTimeStats(): List<VersionWeeklyStats> {
-        return statsService.getVersionOverTimeStats()
+    fun getVersionOverTimeStats(@RequestParam(required = false) repo: String?): List<VersionWeeklyStats> {
+        return statsService.getVersionOverTimeStats(repo)
     }
 
     @GetMapping("/running-versions")
-    fun getRunningVersionsStats(): List<VersionWeeklyStats> {
-        return statsService.getRunningVersionsStats()
+    fun getRunningVersionsStats(@RequestParam(required = false) repo: String?): List<VersionWeeklyStats> {
+        return statsService.getRunningVersionsStats(repo)
     }
 }
