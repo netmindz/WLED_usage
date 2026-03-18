@@ -409,7 +409,10 @@
 
         // Check authentication status
         fetch('/api/auth/user')
-            .then(r => r.json())
+            .then(r => {
+                if (!r.ok) throw new Error('Auth endpoint returned ' + r.status);
+                return r.json();
+            })
             .then(data => {
                 document.getElementById('auth-bar').style.display = 'flex';
                 if (data.authenticated) {
