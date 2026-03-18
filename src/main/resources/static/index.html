@@ -443,7 +443,9 @@
 
                     // Handle logout
                     document.getElementById('auth-logout-btn').addEventListener('click', function() {
-                        window.location.href = '/api/auth/logout';
+                        fetch('/api/auth/logout', { method: 'POST' })
+                            .then(() => { window.location.href = '/'; })
+                            .catch(() => { window.location.href = '/'; });
                     });
                 } else {
                     document.getElementById('auth-login').style.display = 'block';

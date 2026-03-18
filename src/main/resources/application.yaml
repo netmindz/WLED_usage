@@ -15,7 +15,7 @@ spring:
           github:
             client-id: ${GITHUB_OAUTH_CLIENT_ID:}
             client-secret: ${GITHUB_OAUTH_CLIENT_SECRET:}
-            scope: read:user
+            scope: read:user,public_repo
 
 github:
   releases:

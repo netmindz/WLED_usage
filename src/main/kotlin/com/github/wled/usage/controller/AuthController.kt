@@ -26,7 +26,10 @@ class AuthController(private val gitHubUserService: GitHubUserService) {
     }
 
     @GetMapping("/repos")
-    fun getUserRepos(authentication: OAuth2AuthenticationToken): ResponseEntity<List<String>> {
+    fun getUserRepos(authentication: OAuth2AuthenticationToken?): ResponseEntity<List<String>> {
+        if (authentication == null) {
+            return ResponseEntity.status(401).body(emptyList())
+        }
         val repos = gitHubUserService.getWriteAccessRepos(authentication)
         return ResponseEntity.ok(repos)
     }
