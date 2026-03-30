@@ -11,20 +11,29 @@ import com.github.wled.usage.dto.ReleaseNameStats
 import com.github.wled.usage.dto.UpgradeVsInstallationWeeklyStats
 import com.github.wled.usage.dto.VersionStats
 import com.github.wled.usage.dto.VersionWeeklyStats
+import com.github.wled.usage.service.GitHubUserService
 import com.github.wled.usage.service.StatsService
 import org.junit.jupiter.api.Test
+import org.mockito.kotlin.any
 import org.mockito.kotlin.whenever
 import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest
 import org.springframework.boot.test.mock.mockito.MockBean
 import org.springframework.http.MediaType
+import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken
+import org.springframework.security.oauth2.core.user.DefaultOAuth2User
+import org.springframework.security.oauth2.core.user.OAuth2UserAuthority
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.content
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
 
-@WebMvcTest(StatsController::class)
+@WebMvcTest(StatsController::class, excludeAutoConfiguration = [
+    org.springframework.boot.autoconfigure.security.oauth2.client.servlet.OAuth2ClientAutoConfiguration::class
+])
+@AutoConfigureMockMvc(addFilters = false)
 class StatsControllerTest {
 
     @Autowired
@@ -32,6 +41,20 @@ class StatsControllerTest {
 
     @MockBean
     private lateinit var statsService: StatsService
+
+    @MockBean
+    private lateinit var gitHubUserService: GitHubUserService
+
+    private fun createMockAuth(login: String): OAuth2AuthenticationToken {
+        val attributes = mapOf(
+            "login" to login,
+            "avatar_url" to "https://example.com/avatar.png",
+            "id" to 12345
+        )
+        val authority = OAuth2UserAuthority(attributes)
+        val user = DefaultOAuth2User(listOf(authority), attributes, "login")
+        return OAuth2AuthenticationToken(user, listOf(authority), "github")
+    }
 
     @Test
     fun `getCountryStats should return list of country statistics`() {
@@ -490,5 +513,92 @@ class StatsControllerTest {
             .andExpect(status().isOk)
             .andExpect(content().contentType(MediaType.APPLICATION_JSON))
             .andExpect(jsonPath("$").isEmpty)
+    }
+
+    @Test
+    fun `getVersionStats should accept optional repo parameter when user has access`() {
+        val mockStats = listOf(
+            VersionStats("0.14.0", 50)
+        )
+        val mockAuth = createMockAuth("testuser")
+
+        whenever(gitHubUserService.getWriteAccessRepos(any())).thenReturn(listOf("owner/repo"))
+        whenever(statsService.getDeviceCountByVersion("owner/repo")).thenReturn(mockStats)
+
+        mockMvc.perform(
+            get("/api/stats/version")
+                .param("repo", "owner/repo")
+                .principal(mockAuth)
+                .contentType(MediaType.APPLICATION_JSON)
+        )
+            .andExpect(status().isOk)
+            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+            .andExpect(jsonPath("$[0].version").value("0.14.0"))
+            .andExpect(jsonPath("$[0].deviceCount").value(50))
+    }
+
+    @Test
+    fun `getCountryStats should accept optional repo parameter when user has access`() {
+        val mockStats = listOf(
+            CountryStats("US", 30)
+        )
+        val mockAuth = createMockAuth("testuser")
+
+        whenever(gitHubUserService.getWriteAccessRepos(any())).thenReturn(listOf("owner/repo"))
+        whenever(statsService.getDeviceCountByCountry("owner/repo")).thenReturn(mockStats)
+
+        mockMvc.perform(
+            get("/api/stats/country")
+                .param("repo", "owner/repo")
+                .principal(mockAuth)
+                .contentType(MediaType.APPLICATION_JSON)
+        )
+            .andExpect(status().isOk)
+            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+            .andExpect(jsonPath("$[0].countryCode").value("US"))
+            .andExpect(jsonPath("$[0].deviceCount").value(30))
+    }
+
+    @Test
+    fun `stats endpoint should return 403 when repo param is used without authentication`() {
+        mockMvc.perform(
+            get("/api/stats/version")
+                .param("repo", "owner/repo")
+                .contentType(MediaType.APPLICATION_JSON)
+        )
+            .andExpect(status().isForbidden)
+    }
+
+    @Test
+    fun `stats endpoint should return 403 when user does not have write access to repo`() {
+        val mockAuth = createMockAuth("testuser")
+
+        whenever(gitHubUserService.getWriteAccessRepos(any())).thenReturn(listOf("owner/other-repo"))
+
+        mockMvc.perform(
+            get("/api/stats/version")
+                .param("repo", "owner/secret-repo")
+                .principal(mockAuth)
+                .contentType(MediaType.APPLICATION_JSON)
+        )
+            .andExpect(status().isForbidden)
+    }
+
+    @Test
+    fun `stats endpoint should work without repo param and without authentication`() {
+        val mockStats = listOf(
+            VersionStats("0.14.0", 150)
+        )
+
+        whenever(statsService.getDeviceCountByVersion(null)).thenReturn(mockStats)
+
+        mockMvc.perform(
+            get("/api/stats/version")
+                .contentType(MediaType.APPLICATION_JSON)
+        )
+            .andExpect(status().isOk)
+            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+            .andExpect(jsonPath("$[0].version").value("0.14.0"))
+            .andExpect(jsonPath("$[0].deviceCount").value(150))
     }
 }
