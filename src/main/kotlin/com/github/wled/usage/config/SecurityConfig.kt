@@ -1,7 +1,7 @@
 package com.github.wled.usage.config
 
 import org.springframework.beans.factory.annotation.Value
-import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean
+import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.security.config.annotation.web.builders.HttpSecurity
@@ -24,33 +24,38 @@ class SecurityConfig(
 
     private fun oauthEnabled() = githubClientId.isNotBlank() && githubClientSecret.isNotBlank()
 
-    @Bean
-    @ConditionalOnMissingBean(ClientRegistrationRepository::class)
-    fun clientRegistrationRepository(): ClientRegistrationRepository? {
-        if (!oauthEnabled()) return null
-        val registration = ClientRegistration.withRegistrationId("github")
-            .clientId(githubClientId)
-            .clientSecret(githubClientSecret)
-            .clientAuthenticationMethod(ClientAuthenticationMethod.CLIENT_SECRET_BASIC)
-            .authorizationGrantType(AuthorizationGrantType.AUTHORIZATION_CODE)
-            .redirectUri("{baseUrl}/login/oauth2/code/{registrationId}")
-            .scope("read:user", "public_repo")
-            .authorizationUri("https://github.com/login/oauth/authorize")
-            .tokenUri("https://github.com/login/oauth/access_token")
-            .userInfoUri("https://api.github.com/user")
-            .userNameAttributeName("login")
-            .clientName("GitHub")
-            .build()
-        return InMemoryClientRegistrationRepository(registration)
-    }
+    /**
+     * Only registered when github.oauth.client-id is non-blank.
+     * Keeps OAuth2AuthorizedClientService completely absent from the context otherwise,
+     * so GitHubUserService (also conditional) has no unsatisfied dependency.
+     */
+    @Configuration
+    @ConditionalOnExpression("'\${github.oauth.client-id:}'.length() > 0")
+    inner class OAuthBeansConfig {
 
-    @Bean
-    @ConditionalOnMissingBean(OAuth2AuthorizedClientService::class)
-    fun authorizedClientService(
-        clientRegistrationRepository: ClientRegistrationRepository?
-    ): OAuth2AuthorizedClientService? {
-        if (!oauthEnabled() || clientRegistrationRepository == null) return null
-        return InMemoryOAuth2AuthorizedClientService(clientRegistrationRepository)
+        @Bean
+        fun clientRegistrationRepository(): ClientRegistrationRepository {
+            val registration = ClientRegistration.withRegistrationId("github")
+                .clientId(githubClientId)
+                .clientSecret(githubClientSecret)
+                .clientAuthenticationMethod(ClientAuthenticationMethod.CLIENT_SECRET_BASIC)
+                .authorizationGrantType(AuthorizationGrantType.AUTHORIZATION_CODE)
+                .redirectUri("{baseUrl}/login/oauth2/code/{registrationId}")
+                .scope("read:user", "public_repo")
+                .authorizationUri("https://github.com/login/oauth/authorize")
+                .tokenUri("https://github.com/login/oauth/access_token")
+                .userInfoUri("https://api.github.com/user")
+                .userNameAttributeName("login")
+                .clientName("GitHub")
+                .build()
+            return InMemoryClientRegistrationRepository(registration)
+        }
+
+        @Bean
+        fun authorizedClientService(
+            clientRegistrationRepository: ClientRegistrationRepository
+        ): OAuth2AuthorizedClientService =
+            InMemoryOAuth2AuthorizedClientService(clientRegistrationRepository)
     }
 
     @Bean

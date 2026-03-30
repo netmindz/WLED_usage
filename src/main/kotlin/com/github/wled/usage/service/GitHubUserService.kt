@@ -6,7 +6,7 @@ import org.springframework.core.ParameterizedTypeReference
 import org.springframework.security.oauth2.client.OAuth2AuthorizedClient
 import org.springframework.security.oauth2.client.OAuth2AuthorizedClientService
 import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
+import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression
 import org.springframework.stereotype.Service
 import org.springframework.web.client.RestClient
 
@@ -22,7 +22,7 @@ data class GitHubRepoPermissions(
 )
 
 @Service
-@ConditionalOnProperty(name = ["github.oauth.client-id"], matchIfMissing = false)
+@ConditionalOnExpression("'\${github.oauth.client-id:}'.length() > 0")
 class GitHubUserService(
     private val authorizedClientService: OAuth2AuthorizedClientService
 ) {
