@@ -33,6 +33,8 @@ jobs:
     - name: Build with Maven
       run: |
         sed -i -e "s/{WLED_DB_PASSWORD}/${{ secrets.WLED_DB_PASSWORD}}/" src/main/resources/application-prod.yaml
+        sed -i -e "s/{CLIENT_ID}/${{ secrets.CLIENT_ID}}/" src/main/resources/application-prod.yaml
+        sed -i -e "s/{CLIENT_SECRET}/${{ secrets.CLIENT_SECRET}}/" src/main/resources/application-prod.yaml
         mvn -B -DskipTests package # TODO: fix this
 
     - name: Deploy Task

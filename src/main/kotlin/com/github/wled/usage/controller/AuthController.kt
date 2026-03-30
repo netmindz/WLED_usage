@@ -10,7 +10,7 @@ import org.springframework.web.bind.annotation.RestController
 
 @RestController
 @RequestMapping("/api/auth")
-class AuthController(private val gitHubUserService: GitHubUserService) {
+class AuthController(private val gitHubUserService: GitHubUserService?) {
 
     @GetMapping("/user")
     fun getCurrentUser(authentication: OAuth2AuthenticationToken?): ResponseEntity<Map<String, Any>> {
@@ -27,7 +27,7 @@ class AuthController(private val gitHubUserService: GitHubUserService) {
 
     @GetMapping("/repos")
     fun getUserRepos(authentication: OAuth2AuthenticationToken?): ResponseEntity<List<String>> {
-        if (authentication == null) {
+        if (authentication == null || gitHubUserService == null) {
             return ResponseEntity.status(401).body(emptyList())
         }
         val repos = gitHubUserService.getWriteAccessRepos(authentication)

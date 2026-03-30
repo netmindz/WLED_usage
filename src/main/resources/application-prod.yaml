@@ -3,3 +3,8 @@ spring:
     url: 'jdbc:mysql://ralf.netmindz.net:3306/wled'
     username: wled
     password: {WLED_DB_PASSWORD}
+
+github:
+  oauth:
+    client-id: {CLIENT_ID}
+    client-secret: {CLIENT_SECRET}

@@ -25,15 +25,16 @@ import org.springframework.web.server.ResponseStatusException
 @RequestMapping("/api/stats")
 class StatsController(
     val statsService: StatsService,
-    val gitHubUserService: GitHubUserService
+    val gitHubUserService: GitHubUserService?
 ) {
 
     private fun validateRepoAccess(repo: String?, authentication: OAuth2AuthenticationToken?) {
         if (repo == null) return
-        if (authentication == null) {
+        val service = gitHubUserService
+        if (authentication == null || service == null) {
             throw ResponseStatusException(HttpStatus.FORBIDDEN, "Authentication required to filter by repo")
         }
-        val allowedRepos = gitHubUserService.getWriteAccessRepos(authentication)
+        val allowedRepos = service.getWriteAccessRepos(authentication)
         if (repo !in allowedRepos) {
             throw ResponseStatusException(HttpStatus.FORBIDDEN, "You do not have write access to repo: $repo")
         }

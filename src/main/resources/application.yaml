@@ -8,15 +8,11 @@ spring:
     database-platform: org.hibernate.dialect.MySQLDialect
     hibernate:
       ddl-auto: none
-  security:
-    oauth2:
-      client:
-        registration:
-          github:
-            client-id: ${GITHUB_OAUTH_CLIENT_ID:}
-            client-secret: ${GITHUB_OAUTH_CLIENT_SECRET:}
-            scope: read:user,public_repo
+
 
 github:
   releases:
     token: ${GITHUB_TOKEN:}
+  oauth:
+    client-id: ${GITHUB_OAUTH_CLIENT_ID:}
+    client-secret: ${GITHUB_OAUTH_CLIENT_SECRET:}
