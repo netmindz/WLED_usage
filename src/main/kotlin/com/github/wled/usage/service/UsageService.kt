@@ -61,7 +61,33 @@ class UsageService(
                 psramSize = request.psramSize,
                 psramPresent = request.psramPresent,
                 countryCode = countryCode,
-                repo = request.repo
+                repo = request.repo,
+                fsUsed = request.fsUsed,
+                fsTotal = request.fsTotal,
+                busCount = request.busCount,
+                busTypes = request.busTypes?.joinToString(","),
+                hasRGBW = request.hasRGBW,
+                hasCCT = request.hasCCT,
+                ablEnabled = request.ablEnabled,
+                cctFromRgb = request.cctFromRgb,
+                whiteBalanceCorrection = request.whiteBalanceCorrection,
+                gammaCorrection = request.gammaCorrection,
+                autoSegments = request.autoSegments,
+                nightlightEnabled = request.nightlightEnabled,
+                relayConfigured = request.relayConfigured,
+                buttonCount = request.buttonCount,
+                i2cConfigured = request.i2cConfigured,
+                spiConfigured = request.spiConfigured,
+                ethernetEnabled = request.ethernetEnabled,
+                hueEnabled = request.hueEnabled,
+                mqttEnabled = request.mqttEnabled,
+                alexaEnabled = request.alexaEnabled,
+                wledSyncSend = request.wledSyncSend,
+                espNowEnabled = request.espNowEnabled,
+                espNowSync = request.espNowSync,
+                espNowRemoteCount = request.espNowRemoteCount,
+                usermods = request.usermods?.joinToString(","),
+                usermodIds = request.usermodIds?.joinToString(","),
             )
         )
         
@@ -107,6 +133,32 @@ class UsageService(
         device.psramPresent = request.psramPresent
         device.countryCode = countryCode
         device.repo = request.repo
+        device.fsUsed = request.fsUsed
+        device.fsTotal = request.fsTotal
+        device.busCount = request.busCount
+        device.busTypes = request.busTypes?.joinToString(",")
+        device.hasRGBW = request.hasRGBW
+        device.hasCCT = request.hasCCT
+        device.ablEnabled = request.ablEnabled
+        device.cctFromRgb = request.cctFromRgb
+        device.whiteBalanceCorrection = request.whiteBalanceCorrection
+        device.gammaCorrection = request.gammaCorrection
+        device.autoSegments = request.autoSegments
+        device.nightlightEnabled = request.nightlightEnabled
+        device.relayConfigured = request.relayConfigured
+        device.buttonCount = request.buttonCount
+        device.i2cConfigured = request.i2cConfigured
+        device.spiConfigured = request.spiConfigured
+        device.ethernetEnabled = request.ethernetEnabled
+        device.hueEnabled = request.hueEnabled
+        device.mqttEnabled = request.mqttEnabled
+        device.alexaEnabled = request.alexaEnabled
+        device.wledSyncSend = request.wledSyncSend
+        device.espNowEnabled = request.espNowEnabled
+        device.espNowSync = request.espNowSync
+        device.espNowRemoteCount = request.espNowRemoteCount
+        device.usermods = request.usermods?.joinToString(",")
+        device.usermodIds = request.usermodIds?.joinToString(",")
         deviceRepository.save(device)
     }
 
