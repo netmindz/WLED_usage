@@ -8,7 +8,6 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.mockito.kotlin.any
-import org.mockito.kotlin.isNull
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.whenever
 import java.time.LocalDateTime
@@ -159,8 +158,8 @@ class StatsServiceTest {
 
     @Test
     fun `getUpgradeVsInstallationStats should return empty list when no data exists`() {
-        whenever(upgradeEventRepository.countUpgradeEventsByWeek(any(), isNull())).thenReturn(emptyList())
-        whenever(deviceRepository.countNewDevicesByWeek(any(), isNull())).thenReturn(emptyList())
+        whenever(upgradeEventRepository.countUpgradeEventsByWeek(any())).thenReturn(emptyList())
+        whenever(deviceRepository.countNewDevicesByWeek(any())).thenReturn(emptyList())
 
         val result = statsService.getUpgradeVsInstallationStats()
 
@@ -178,8 +177,8 @@ class StatsServiceTest {
             mapOf("weekStart" to "2026-01-12", "deviceCount" to 30L)
         )
 
-        whenever(upgradeEventRepository.countUpgradeEventsByWeek(any(), isNull())).thenReturn(upgradeData)
-        whenever(deviceRepository.countNewDevicesByWeek(any(), isNull())).thenReturn(installationData)
+        whenever(upgradeEventRepository.countUpgradeEventsByWeek(any())).thenReturn(upgradeData)
+        whenever(deviceRepository.countNewDevicesByWeek(any())).thenReturn(installationData)
 
         val result = statsService.getUpgradeVsInstallationStats()
 
@@ -201,8 +200,8 @@ class StatsServiceTest {
             mapOf("weekStart" to "2026-01-12", "deviceCount" to 25L)
         )
 
-        whenever(upgradeEventRepository.countUpgradeEventsByWeek(any(), isNull())).thenReturn(upgradeData)
-        whenever(deviceRepository.countNewDevicesByWeek(any(), isNull())).thenReturn(installationData)
+        whenever(upgradeEventRepository.countUpgradeEventsByWeek(any())).thenReturn(upgradeData)
+        whenever(deviceRepository.countNewDevicesByWeek(any())).thenReturn(installationData)
 
         val result = statsService.getUpgradeVsInstallationStats()
 
@@ -217,8 +216,8 @@ class StatsServiceTest {
 
     @Test
     fun `getChipOverTimeStats should return empty list when no data exists`() {
-        whenever(upgradeEventRepository.countUpgradeEventsByWeekAndChip(any(), isNull())).thenReturn(emptyList())
-        whenever(deviceRepository.countNewDevicesByWeekAndChip(any(), isNull())).thenReturn(emptyList())
+        whenever(upgradeEventRepository.countUpgradeEventsByWeekAndChip(any())).thenReturn(emptyList())
+        whenever(deviceRepository.countNewDevicesByWeekAndChip(any())).thenReturn(emptyList())
 
         val result = statsService.getChipOverTimeStats()
 
@@ -237,8 +236,8 @@ class StatsServiceTest {
             mapOf("weekStart" to "2026-01-12", "chip" to "ESP32", "deviceCount" to 7L)
         )
 
-        whenever(upgradeEventRepository.countUpgradeEventsByWeekAndChip(any(), isNull())).thenReturn(upgradeData)
-        whenever(deviceRepository.countNewDevicesByWeekAndChip(any(), isNull())).thenReturn(installationData)
+        whenever(upgradeEventRepository.countUpgradeEventsByWeekAndChip(any())).thenReturn(upgradeData)
+        whenever(deviceRepository.countNewDevicesByWeekAndChip(any())).thenReturn(installationData)
 
         val result = statsService.getChipOverTimeStats()
 
@@ -256,8 +255,8 @@ class StatsServiceTest {
 
     @Test
     fun `getVersionOverTimeStats should return empty list when no data exists`() {
-        whenever(upgradeEventRepository.countUpgradeEventsByWeekAndVersion(any(), isNull())).thenReturn(emptyList())
-        whenever(deviceRepository.countNewDevicesByWeekAndVersion(any(), isNull())).thenReturn(emptyList())
+        whenever(upgradeEventRepository.countUpgradeEventsByWeekAndVersion(any())).thenReturn(emptyList())
+        whenever(deviceRepository.countNewDevicesByWeekAndVersion(any())).thenReturn(emptyList())
 
         val result = statsService.getVersionOverTimeStats()
 
@@ -276,8 +275,8 @@ class StatsServiceTest {
             mapOf("weekStart" to "2026-01-12", "version" to "0.14.0", "deviceCount" to 7L)
         )
 
-        whenever(upgradeEventRepository.countUpgradeEventsByWeekAndVersion(any(), isNull())).thenReturn(upgradeData)
-        whenever(deviceRepository.countNewDevicesByWeekAndVersion(any(), isNull())).thenReturn(installationData)
+        whenever(upgradeEventRepository.countUpgradeEventsByWeekAndVersion(any())).thenReturn(upgradeData)
+        whenever(deviceRepository.countNewDevicesByWeekAndVersion(any())).thenReturn(installationData)
 
         val result = statsService.getVersionOverTimeStats()
 

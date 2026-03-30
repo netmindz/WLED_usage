@@ -25,8 +25,8 @@ class StatsService(
     val deviceRepository: DeviceRepository,
     val upgradeEventRepository: UpgradeEventRepository
 ) {
-    fun getDeviceCountByCountry(repo: String? = null): List<CountryStats> {
-        return deviceRepository.countDevicesByCountryCode(repo).map {
+    fun getDeviceCountByCountry(): List<CountryStats> {
+        return deviceRepository.countDevicesByCountryCode().map {
             CountryStats(
                 countryCode = it["countryCode"] as String,
                 deviceCount = it["deviceCount"] as Long
@@ -34,8 +34,8 @@ class StatsService(
         }
     }
     
-    fun getDeviceCountByVersion(repo: String? = null): List<VersionStats> {
-        return deviceRepository.countDevicesByVersion(repo).map {
+    fun getDeviceCountByVersion(): List<VersionStats> {
+        return deviceRepository.countDevicesByVersion().map {
             VersionStats(
                 version = it["version"] as String,
                 deviceCount = it["deviceCount"] as Long
@@ -43,8 +43,8 @@ class StatsService(
         }
     }
     
-    fun getDeviceCountByChip(repo: String? = null): List<ChipStats> {
-        return deviceRepository.countDevicesByChip(repo).map {
+    fun getDeviceCountByChip(): List<ChipStats> {
+        return deviceRepository.countDevicesByChip().map {
             ChipStats(
                 chip = it["chip"] as String,
                 deviceCount = it["deviceCount"] as Long
@@ -52,8 +52,8 @@ class StatsService(
         }
     }
     
-    fun getDeviceCountByIsMatrix(repo: String? = null): List<MatrixStats> {
-        return deviceRepository.countDevicesByIsMatrix(repo).map {
+    fun getDeviceCountByIsMatrix(): List<MatrixStats> {
+        return deviceRepository.countDevicesByIsMatrix().map {
             MatrixStats(
                 isMatrix = it["isMatrix"] as Boolean,
                 deviceCount = it["deviceCount"] as Long
@@ -61,8 +61,8 @@ class StatsService(
         }
     }
     
-    fun getDeviceCountByFlashSize(repo: String? = null): List<FlashSizeStats> {
-        return deviceRepository.countDevicesByFlashSize(repo).map {
+    fun getDeviceCountByFlashSize(): List<FlashSizeStats> {
+        return deviceRepository.countDevicesByFlashSize().map {
             FlashSizeStats(
                 flashSize = it["flashSize"] as String,
                 deviceCount = it["deviceCount"] as Long
@@ -70,8 +70,8 @@ class StatsService(
         }
     }
     
-    fun getDeviceCountByPsramSize(repo: String? = null): List<PsramSizeStats> {
-        return deviceRepository.countDevicesByPsramSize(repo).map {
+    fun getDeviceCountByPsramSize(): List<PsramSizeStats> {
+        return deviceRepository.countDevicesByPsramSize().map {
             PsramSizeStats(
                 psramSize = it["psramSize"] as String,
                 deviceCount = it["deviceCount"] as Long
@@ -79,8 +79,8 @@ class StatsService(
         }
     }
     
-    fun getDeviceCountByReleaseName(repo: String? = null): List<ReleaseNameStats> {
-        return deviceRepository.countDevicesByReleaseName(repo).map {
+    fun getDeviceCountByReleaseName(): List<ReleaseNameStats> {
+        return deviceRepository.countDevicesByReleaseName().map {
             ReleaseNameStats(
                 releaseName = it["releaseName"] as String,
                 deviceCount = it["deviceCount"] as Long
@@ -88,8 +88,8 @@ class StatsService(
         }
     }
     
-    fun getDeviceCountByLedCountRange(repo: String? = null): List<LedCountRangeStats> {
-        val rawData = deviceRepository.countDevicesByLedCount(repo)
+    fun getDeviceCountByLedCountRange(): List<LedCountRangeStats> {
+        val rawData = deviceRepository.countDevicesByLedCount()
         if (rawData.isEmpty()) {
             return emptyList()
         }
@@ -109,13 +109,13 @@ class StatsService(
         return aggregateIntoRanges(ledCounts, ranges)
     }
     
-    fun getUpgradeVsInstallationStats(repo: String? = null): List<UpgradeVsInstallationWeeklyStats> {
+    fun getUpgradeVsInstallationStats(): List<UpgradeVsInstallationWeeklyStats> {
         val since = LocalDateTime.now().minusMonths(3)
 
-        val upgradesByWeek = upgradeEventRepository.countUpgradeEventsByWeek(since, repo)
+        val upgradesByWeek = upgradeEventRepository.countUpgradeEventsByWeek(since)
             .associate { it["weekStart"].toString() to (it["eventCount"] as Number).toLong() }
 
-        val newDevicesByWeek = deviceRepository.countNewDevicesByWeek(since, repo)
+        val newDevicesByWeek = deviceRepository.countNewDevicesByWeek(since)
             .associate { it["weekStart"].toString() to (it["deviceCount"] as Number).toLong() }
 
         val allWeeks = (upgradesByWeek.keys + newDevicesByWeek.keys).sorted()
@@ -129,20 +129,12 @@ class StatsService(
         }
     }
 
-    fun getRunningVersionsStats(repo: String? = null): List<VersionWeeklyStats> {
+    fun getRunningVersionsStats(): List<VersionWeeklyStats> {
         val since = LocalDateTime.now().minusMonths(3)
 
         val weekStarts = generateWeekStarts(since)
-        val devices = if (repo != null) {
-            deviceRepository.findAllByRepo(repo)
-        } else {
-            deviceRepository.findAll().toList()
-        }
-        val allEvents = if (repo != null) {
-            upgradeEventRepository.findAllWithDeviceByRepo(repo)
-        } else {
-            upgradeEventRepository.findAllWithDevice()
-        }
+        val devices = deviceRepository.findAll().toList()
+        val allEvents = upgradeEventRepository.findAllWithDevice()
         val eventsByDeviceId = allEvents.groupBy { it.device.id }
             .mapValues { (_, events) -> events.sortedBy { it.created } }
 
@@ -174,17 +166,17 @@ class StatsService(
         return results
     }
 
-    fun getChipOverTimeStats(repo: String? = null): List<ChipWeeklyStats> {
+    fun getChipOverTimeStats(): List<ChipWeeklyStats> {
         val since = LocalDateTime.now().minusMonths(3)
 
         val countsByWeekAndChip = mutableMapOf<Pair<String, String>, Long>()
 
-        upgradeEventRepository.countUpgradeEventsByWeekAndChip(since, repo).forEach {
+        upgradeEventRepository.countUpgradeEventsByWeekAndChip(since).forEach {
             val key = Pair(it["weekStart"].toString(), it["chip"] as String)
             countsByWeekAndChip.merge(key, (it["eventCount"] as Number).toLong(), Long::plus)
         }
 
-        deviceRepository.countNewDevicesByWeekAndChip(since, repo).forEach {
+        deviceRepository.countNewDevicesByWeekAndChip(since).forEach {
             val key = Pair(it["weekStart"].toString(), it["chip"] as String)
             countsByWeekAndChip.merge(key, (it["deviceCount"] as Number).toLong(), Long::plus)
         }
@@ -200,18 +192,18 @@ class StatsService(
             }
     }
 
-    fun getVersionOverTimeStats(repo: String? = null): List<VersionWeeklyStats> {
+    fun getVersionOverTimeStats(): List<VersionWeeklyStats> {
         val since = LocalDateTime.now().minusMonths(3)
 
         // Combine upgrade events and new installations by week and version
         val countsByWeekAndVersion = mutableMapOf<Pair<String, String>, Long>()
 
-        upgradeEventRepository.countUpgradeEventsByWeekAndVersion(since, repo).forEach {
+        upgradeEventRepository.countUpgradeEventsByWeekAndVersion(since).forEach {
             val key = Pair(it["weekStart"].toString(), it["version"] as String)
             countsByWeekAndVersion.merge(key, (it["eventCount"] as Number).toLong(), Long::plus)
         }
 
-        deviceRepository.countNewDevicesByWeekAndVersion(since, repo).forEach {
+        deviceRepository.countNewDevicesByWeekAndVersion(since).forEach {
             val key = Pair(it["weekStart"].toString(), it["version"] as String)
             countsByWeekAndVersion.merge(key, (it["deviceCount"] as Number).toLong(), Long::plus)
         }
