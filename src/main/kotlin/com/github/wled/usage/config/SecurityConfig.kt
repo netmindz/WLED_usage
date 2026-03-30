@@ -14,7 +14,6 @@ import org.springframework.security.oauth2.client.registration.InMemoryClientReg
 import org.springframework.security.oauth2.core.AuthorizationGrantType
 import org.springframework.security.oauth2.core.ClientAuthenticationMethod
 import org.springframework.security.web.SecurityFilterChain
-import org.springframework.web.filter.ForwardedHeaderFilter
 
 @Configuration
 @EnableWebSecurity
@@ -24,9 +23,6 @@ class SecurityConfig(
 ) {
 
     private fun oauthEnabled() = githubClientId.isNotBlank() && githubClientSecret.isNotBlank()
-
-    @Bean
-    fun forwardedHeaderFilter() = ForwardedHeaderFilter()
 
     /**
      * Only registered when github.oauth.client-id is non-blank.

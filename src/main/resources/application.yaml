@@ -8,7 +8,11 @@ spring:
     database-platform: org.hibernate.dialect.MySQLDialect
     hibernate:
       ddl-auto: none
-
+  web:
+    resources:
+      add-mappings: true
+server:
+  forward-headers-strategy: framework
 
 github:
   releases:
