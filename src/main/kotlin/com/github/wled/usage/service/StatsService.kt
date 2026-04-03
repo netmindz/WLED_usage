@@ -25,6 +25,8 @@ class StatsService(
     val deviceRepository: DeviceRepository,
     val upgradeEventRepository: UpgradeEventRepository
 ) {
+    fun getKnownRepos(): List<String> = deviceRepository.findDistinctRepos()
+
     fun getDeviceCountByCountry(repo: String? = null): List<CountryStats> {
         return deviceRepository.countDevicesByCountryCode(repo).map {
             CountryStats(

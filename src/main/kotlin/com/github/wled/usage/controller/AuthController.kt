@@ -1,6 +1,7 @@
 package com.github.wled.usage.controller
 
 import com.github.wled.usage.service.GitHubUserService
+import com.github.wled.usage.service.StatsService
 import org.springframework.http.ResponseEntity
 import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken
 import org.springframework.security.oauth2.core.user.OAuth2User
@@ -10,7 +11,7 @@ import org.springframework.web.bind.annotation.RestController
 
 @RestController
 @RequestMapping("/api/auth")
-class AuthController(private val gitHubUserService: GitHubUserService?) {
+class AuthController(private val gitHubUserService: GitHubUserService?, private val statsService: StatsService) {
 
     @GetMapping("/user")
     fun getCurrentUser(authentication: OAuth2AuthenticationToken?): ResponseEntity<Map<String, Any>> {
@@ -30,7 +31,9 @@ class AuthController(private val gitHubUserService: GitHubUserService?) {
         if (authentication == null || gitHubUserService == null) {
             return ResponseEntity.status(401).body(emptyList())
         }
-        val repos = gitHubUserService.getWriteAccessRepos(authentication)
+        val writeAccessRepos = gitHubUserService.getWriteAccessRepos(authentication)
+        val knownRepos = statsService.getKnownRepos().toSet()
+        val repos = writeAccessRepos.filter { it in knownRepos }
         return ResponseEntity.ok(repos)
     }
 }

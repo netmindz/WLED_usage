@@ -1,6 +1,7 @@
 package com.github.wled.usage.controller
 
 import com.github.wled.usage.service.GitHubUserService
+import com.github.wled.usage.service.StatsService
 import org.junit.jupiter.api.Test
 import org.mockito.kotlin.whenever
 import org.springframework.beans.factory.annotation.Autowired
@@ -29,6 +30,9 @@ class AuthControllerTest {
     @MockBean
     private lateinit var gitHubUserService: GitHubUserService
 
+    @MockBean
+    private lateinit var statsService: StatsService
+
     @Test
     fun `getCurrentUser should return authenticated false when not logged in`() {
         mockMvc.perform(
@@ -41,11 +45,13 @@ class AuthControllerTest {
     }
 
     @Test
-    fun `getUserRepos should return repos from service`() {
+    fun `getUserRepos should return only repos the user has access to AND that have device data`() {
         val mockAuth = createMockAuth("testuser", "https://example.com/avatar.png")
-        val mockRepos = listOf("owner/repo1", "owner/repo2")
 
-        whenever(gitHubUserService.getWriteAccessRepos(org.mockito.kotlin.any())).thenReturn(mockRepos)
+        whenever(gitHubUserService.getWriteAccessRepos(org.mockito.kotlin.any()))
+            .thenReturn(listOf("owner/repo1", "owner/repo2", "owner/repo3"))
+        whenever(statsService.getKnownRepos())
+            .thenReturn(listOf("owner/repo1", "owner/repo2"))
 
         mockMvc.perform(
             get("/api/auth/repos")
@@ -56,6 +62,26 @@ class AuthControllerTest {
             .andExpect(content().contentType(MediaType.APPLICATION_JSON))
             .andExpect(jsonPath("$[0]").value("owner/repo1"))
             .andExpect(jsonPath("$[1]").value("owner/repo2"))
+            .andExpect(jsonPath("$.length()").value(2))
+    }
+
+    @Test
+    fun `getUserRepos should return empty list when user has write access to no known repos`() {
+        val mockAuth = createMockAuth("testuser", "https://example.com/avatar.png")
+
+        whenever(gitHubUserService.getWriteAccessRepos(org.mockito.kotlin.any()))
+            .thenReturn(listOf("owner/unknown-repo"))
+        whenever(statsService.getKnownRepos())
+            .thenReturn(listOf("owner/repo1", "owner/repo2"))
+
+        mockMvc.perform(
+            get("/api/auth/repos")
+                .principal(mockAuth)
+                .contentType(MediaType.APPLICATION_JSON)
+        )
+            .andExpect(status().isOk)
+            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+            .andExpect(jsonPath("$.length()").value(0))
     }
 
     private fun createMockAuth(login: String, avatarUrl: String): OAuth2AuthenticationToken {
