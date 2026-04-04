@@ -41,7 +41,7 @@ class SecurityConfig(
                 .clientAuthenticationMethod(ClientAuthenticationMethod.CLIENT_SECRET_BASIC)
                 .authorizationGrantType(AuthorizationGrantType.AUTHORIZATION_CODE)
                 .redirectUri("{baseUrl}/login/oauth2/code/{registrationId}")
-                .scope("read:user")
+                .scope("read:user", "read:org")
                 .authorizationUri("https://github.com/login/oauth/authorize")
                 .tokenUri("https://github.com/login/oauth/access_token")
                 .userInfoUri("https://api.github.com/user")
