@@ -3,6 +3,8 @@ package com.github.wled.usage.controller
 import com.github.wled.usage.service.GitHubUserService
 import com.github.wled.usage.service.StatsService
 import org.junit.jupiter.api.Test
+import org.mockito.kotlin.any
+import org.mockito.kotlin.eq
 import org.mockito.kotlin.whenever
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc
@@ -46,11 +48,11 @@ class AuthControllerTest {
 
     @Test
     fun `getUserRepos should return only repos the user has access to AND that have device data`() {
-        val mockAuth = createMockAuth("testuser", "https://example.com/avatar.png")
+        val mockAuth = createMockAuth()
 
-        whenever(gitHubUserService.getWriteAccessRepos(org.mockito.kotlin.any()))
-            .thenReturn(listOf("owner/repo1", "owner/repo2", "owner/repo3"))
         whenever(statsService.getKnownRepos())
+            .thenReturn(listOf("owner/repo1", "owner/repo2"))
+        whenever(gitHubUserService.getWriteAccessRepos(any(), eq(listOf("owner/repo1", "owner/repo2"))))
             .thenReturn(listOf("owner/repo1", "owner/repo2"))
 
         mockMvc.perform(
@@ -67,12 +69,12 @@ class AuthControllerTest {
 
     @Test
     fun `getUserRepos should return empty list when user has write access to no known repos`() {
-        val mockAuth = createMockAuth("testuser", "https://example.com/avatar.png")
+        val mockAuth = createMockAuth()
 
-        whenever(gitHubUserService.getWriteAccessRepos(org.mockito.kotlin.any()))
-            .thenReturn(listOf("owner/unknown-repo"))
         whenever(statsService.getKnownRepos())
             .thenReturn(listOf("owner/repo1", "owner/repo2"))
+        whenever(gitHubUserService.getWriteAccessRepos(any(), eq(listOf("owner/repo1", "owner/repo2"))))
+            .thenReturn(listOf("owner/unknown-repo"))
 
         mockMvc.perform(
             get("/api/auth/repos")
@@ -84,10 +86,31 @@ class AuthControllerTest {
             .andExpect(jsonPath("$.length()").value(0))
     }
 
-    private fun createMockAuth(login: String, avatarUrl: String): OAuth2AuthenticationToken {
+    @Test
+    fun `getUserRepos should include outside-collaborator repos found via direct check`() {
+        val mockAuth = createMockAuth()
+
+        whenever(statsService.getKnownRepos())
+            .thenReturn(listOf("owner/repo1", "wled/WLED"))
+        // The service checks wled/WLED directly because the bulk list missed it,
+        // and returns it as accessible
+        whenever(gitHubUserService.getWriteAccessRepos(any(), eq(listOf("owner/repo1", "wled/WLED"))))
+            .thenReturn(listOf("owner/repo1", "wled/WLED"))
+
+        mockMvc.perform(
+            get("/api/auth/repos")
+                .principal(mockAuth)
+                .contentType(MediaType.APPLICATION_JSON)
+        )
+            .andExpect(status().isOk)
+            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+            .andExpect(jsonPath("$.length()").value(2))
+    }
+
+    private fun createMockAuth(): OAuth2AuthenticationToken {
         val attributes = mapOf(
-            "login" to login,
-            "avatar_url" to avatarUrl,
+            "login" to "testuser",
+            "avatar_url" to "https://example.com/avatar.png",
             "id" to 12345
         )
         val authority = OAuth2UserAuthority(attributes)

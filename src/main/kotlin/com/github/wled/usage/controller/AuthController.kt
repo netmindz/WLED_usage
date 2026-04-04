@@ -31,9 +31,10 @@ class AuthController(private val gitHubUserService: GitHubUserService?, private 
         if (authentication == null || gitHubUserService == null) {
             return ResponseEntity.status(401).body(emptyList())
         }
-        val writeAccessRepos = gitHubUserService.getWriteAccessRepos(authentication)
-        val knownRepos = statsService.getKnownRepos().toSet()
-        val repos = writeAccessRepos.filter { it in knownRepos }
+        val knownRepos = statsService.getKnownRepos()
+        val writeAccessRepos = gitHubUserService.getWriteAccessRepos(authentication, knownRepos)
+        val knownReposSet = knownRepos.toSet()
+        val repos = writeAccessRepos.filter { it in knownReposSet }
         return ResponseEntity.ok(repos)
     }
 }

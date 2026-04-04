@@ -34,7 +34,7 @@ class StatsController(
         if (authentication == null || service == null) {
             throw ResponseStatusException(HttpStatus.FORBIDDEN, "Authentication required to filter by repo")
         }
-        val allowedRepos = service.getWriteAccessRepos(authentication)
+        val allowedRepos = service.getWriteAccessRepos(authentication, listOf(repo))
         if (repo !in allowedRepos) {
             throw ResponseStatusException(HttpStatus.FORBIDDEN, "You do not have write access to repo: $repo")
         }
