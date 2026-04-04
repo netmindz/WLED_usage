@@ -32,9 +32,10 @@ class AuthController(private val gitHubUserService: GitHubUserService?, private 
             return ResponseEntity.status(401).body(emptyList())
         }
         val knownRepos = statsService.getKnownRepos()
-        val writeAccessRepos = gitHubUserService.getWriteAccessRepos(authentication, knownRepos)
-        val knownReposSet = knownRepos.toSet()
-        val repos = writeAccessRepos.filter { it in knownReposSet }
+        val writeAccessRepos = gitHubUserService.getWriteAccessRepos(authentication)
+        val writeAccessLower = writeAccessRepos.map { it.lowercase() }.toSet()
+        // Return the repo names as stored in the DB, matched case-insensitively against what GitHub returned
+        val repos = knownRepos.filter { it.lowercase() in writeAccessLower }
         return ResponseEntity.ok(repos)
     }
 }

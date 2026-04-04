@@ -4,7 +4,6 @@ import com.github.wled.usage.service.GitHubUserService
 import com.github.wled.usage.service.StatsService
 import org.junit.jupiter.api.Test
 import org.mockito.kotlin.any
-import org.mockito.kotlin.eq
 import org.mockito.kotlin.whenever
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc
@@ -52,8 +51,8 @@ class AuthControllerTest {
 
         whenever(statsService.getKnownRepos())
             .thenReturn(listOf("owner/repo1", "owner/repo2"))
-        whenever(gitHubUserService.getWriteAccessRepos(any(), eq(listOf("owner/repo1", "owner/repo2"))))
-            .thenReturn(listOf("owner/repo1", "owner/repo2"))
+        whenever(gitHubUserService.getWriteAccessRepos(any()))
+            .thenReturn(listOf("owner/repo1", "owner/repo2", "owner/repo3"))
 
         mockMvc.perform(
             get("/api/auth/repos")
@@ -73,7 +72,7 @@ class AuthControllerTest {
 
         whenever(statsService.getKnownRepos())
             .thenReturn(listOf("owner/repo1", "owner/repo2"))
-        whenever(gitHubUserService.getWriteAccessRepos(any(), eq(listOf("owner/repo1", "owner/repo2"))))
+        whenever(gitHubUserService.getWriteAccessRepos(any()))
             .thenReturn(listOf("owner/unknown-repo"))
 
         mockMvc.perform(
@@ -87,15 +86,14 @@ class AuthControllerTest {
     }
 
     @Test
-    fun `getUserRepos should include outside-collaborator repos found via direct check`() {
+    fun `getUserRepos should match repos case-insensitively`() {
         val mockAuth = createMockAuth()
 
+        // DB stores "wled/wled", GitHub returns "wled/WLED"
         whenever(statsService.getKnownRepos())
-            .thenReturn(listOf("owner/repo1", "wled/WLED"))
-        // The service checks wled/WLED directly because the bulk list missed it,
-        // and returns it as accessible
-        whenever(gitHubUserService.getWriteAccessRepos(any(), eq(listOf("owner/repo1", "wled/WLED"))))
-            .thenReturn(listOf("owner/repo1", "wled/WLED"))
+            .thenReturn(listOf("netmindz/WLED-MM", "MoonModules/WLED-MM", "wled/wled"))
+        whenever(gitHubUserService.getWriteAccessRepos(any()))
+            .thenReturn(listOf("netmindz/WLED-MM", "MoonModules/WLED-MM", "wled/WLED"))
 
         mockMvc.perform(
             get("/api/auth/repos")
@@ -104,7 +102,7 @@ class AuthControllerTest {
         )
             .andExpect(status().isOk)
             .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-            .andExpect(jsonPath("$.length()").value(2))
+            .andExpect(jsonPath("$.length()").value(3))
     }
 
     private fun createMockAuth(): OAuth2AuthenticationToken {
