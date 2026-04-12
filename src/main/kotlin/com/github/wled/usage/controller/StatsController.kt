@@ -130,6 +130,15 @@ class StatsController(
         return statsService.getChipOverTimeStats(repo)
     }
 
+    @GetMapping("/install-chip-over-time")
+    fun getInstallChipOverTimeStats(
+        @RequestParam(required = false) repo: String?,
+        authentication: OAuth2AuthenticationToken?
+    ): List<ChipWeeklyStats> {
+        validateRepoAccess(repo, authentication)
+        return statsService.getInstallChipOverTimeStats(repo)
+    }
+
     @GetMapping("/version-over-time")
     fun getVersionOverTimeStats(
         @RequestParam(required = false) repo: String?,

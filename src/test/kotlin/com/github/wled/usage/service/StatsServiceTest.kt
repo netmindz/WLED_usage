@@ -255,6 +255,39 @@ class StatsServiceTest {
     }
 
     @Test
+    fun `getInstallChipOverTimeStats should return empty list when no data exists`() {
+        whenever(deviceRepository.countNewDevicesByWeekAndChip(any(), isNull())).thenReturn(emptyList())
+
+        val result = statsService.getInstallChipOverTimeStats()
+
+        assertTrue(result.isEmpty())
+    }
+
+    @Test
+    fun `getInstallChipOverTimeStats should return chip data grouped by week for new installations only`() {
+        val installationData = listOf(
+            mapOf("weekStart" to "2026-01-05", "chip" to "ESP32", "deviceCount" to 3L),
+            mapOf("weekStart" to "2026-01-05", "chip" to "ESP8266", "deviceCount" to 2L),
+            mapOf("weekStart" to "2026-01-12", "chip" to "ESP32", "deviceCount" to 7L)
+        )
+
+        whenever(deviceRepository.countNewDevicesByWeekAndChip(any(), isNull())).thenReturn(installationData)
+
+        val result = statsService.getInstallChipOverTimeStats()
+
+        assertEquals(3, result.size)
+        assertEquals("2026-01-05", result[0].week)
+        assertEquals("ESP32", result[0].chip)
+        assertEquals(3L, result[0].count)
+        assertEquals("2026-01-05", result[1].week)
+        assertEquals("ESP8266", result[1].chip)
+        assertEquals(2L, result[1].count)
+        assertEquals("2026-01-12", result[2].week)
+        assertEquals("ESP32", result[2].chip)
+        assertEquals(7L, result[2].count)
+    }
+
+    @Test
     fun `getVersionOverTimeStats should return empty list when no data exists`() {
         whenever(upgradeEventRepository.countUpgradeEventsByWeekAndVersion(any(), isNull())).thenReturn(emptyList())
         whenever(deviceRepository.countNewDevicesByWeekAndVersion(any(), isNull())).thenReturn(emptyList())

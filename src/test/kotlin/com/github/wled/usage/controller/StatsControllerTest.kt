@@ -436,6 +436,46 @@ class StatsControllerTest {
     }
 
     @Test
+    fun `getInstallChipOverTimeStats should return weekly chip data for new installations`() {
+        val mockStats = listOf(
+            ChipWeeklyStats("2026-01-05", "ESP32", 3),
+            ChipWeeklyStats("2026-01-05", "ESP8266", 2),
+            ChipWeeklyStats("2026-01-12", "ESP32", 7)
+        )
+
+        whenever(statsService.getInstallChipOverTimeStats()).thenReturn(mockStats)
+
+        mockMvc.perform(
+            get("/api/stats/install-chip-over-time")
+                .contentType(MediaType.APPLICATION_JSON)
+        )
+            .andExpect(status().isOk)
+            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+            .andExpect(jsonPath("$[0].week").value("2026-01-05"))
+            .andExpect(jsonPath("$[0].chip").value("ESP32"))
+            .andExpect(jsonPath("$[0].count").value(3))
+            .andExpect(jsonPath("$[1].week").value("2026-01-05"))
+            .andExpect(jsonPath("$[1].chip").value("ESP8266"))
+            .andExpect(jsonPath("$[1].count").value(2))
+            .andExpect(jsonPath("$[2].week").value("2026-01-12"))
+            .andExpect(jsonPath("$[2].chip").value("ESP32"))
+            .andExpect(jsonPath("$[2].count").value(7))
+    }
+
+    @Test
+    fun `getInstallChipOverTimeStats should return empty list when no data exists`() {
+        whenever(statsService.getInstallChipOverTimeStats()).thenReturn(emptyList())
+
+        mockMvc.perform(
+            get("/api/stats/install-chip-over-time")
+                .contentType(MediaType.APPLICATION_JSON)
+        )
+            .andExpect(status().isOk)
+            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+            .andExpect(jsonPath("$").isEmpty)
+    }
+
+    @Test
     fun `getVersionOverTimeStats should return weekly version data`() {
         val mockStats = listOf(
             VersionWeeklyStats("2026-01-05", "0.14.0", 10),
