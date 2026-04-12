@@ -160,7 +160,8 @@ class StatsServiceTest {
     @Test
     fun `getUpgradeVsInstallationStats should return empty list when no data exists`() {
         whenever(upgradeEventRepository.countUpgradeEventsByWeek(any(), isNull())).thenReturn(emptyList())
-        whenever(deviceRepository.countNewDevicesByWeek(any(), isNull())).thenReturn(emptyList())
+        whenever(deviceRepository.countGenuineNewDevicesByWeek(any(), isNull())).thenReturn(emptyList())
+        whenever(deviceRepository.countLegacyNewDevicesByWeek(any(), isNull())).thenReturn(emptyList())
 
         val result = statsService.getUpgradeVsInstallationStats()
 
@@ -173,13 +174,14 @@ class StatsServiceTest {
             mapOf("weekStart" to "2026-01-05", "eventCount" to 10L),
             mapOf("weekStart" to "2026-01-12", "eventCount" to 15L)
         )
-        val installationData = listOf(
+        val genuineInstallData = listOf(
             mapOf("weekStart" to "2026-01-05", "deviceCount" to 25L),
             mapOf("weekStart" to "2026-01-12", "deviceCount" to 30L)
         )
 
         whenever(upgradeEventRepository.countUpgradeEventsByWeek(any(), isNull())).thenReturn(upgradeData)
-        whenever(deviceRepository.countNewDevicesByWeek(any(), isNull())).thenReturn(installationData)
+        whenever(deviceRepository.countGenuineNewDevicesByWeek(any(), isNull())).thenReturn(genuineInstallData)
+        whenever(deviceRepository.countLegacyNewDevicesByWeek(any(), isNull())).thenReturn(emptyList())
 
         val result = statsService.getUpgradeVsInstallationStats()
 
@@ -197,12 +199,13 @@ class StatsServiceTest {
         val upgradeData = listOf(
             mapOf("weekStart" to "2026-01-05", "eventCount" to 10L)
         )
-        val installationData = listOf(
+        val genuineInstallData = listOf(
             mapOf("weekStart" to "2026-01-12", "deviceCount" to 25L)
         )
 
         whenever(upgradeEventRepository.countUpgradeEventsByWeek(any(), isNull())).thenReturn(upgradeData)
-        whenever(deviceRepository.countNewDevicesByWeek(any(), isNull())).thenReturn(installationData)
+        whenever(deviceRepository.countGenuineNewDevicesByWeek(any(), isNull())).thenReturn(genuineInstallData)
+        whenever(deviceRepository.countLegacyNewDevicesByWeek(any(), isNull())).thenReturn(emptyList())
 
         val result = statsService.getUpgradeVsInstallationStats()
 
@@ -213,6 +216,30 @@ class StatsServiceTest {
         assertEquals("2026-01-12", result[1].week)
         assertEquals(0L, result[1].upgrades)
         assertEquals(25L, result[1].newInstallations)
+    }
+
+    @Test
+    fun `getUpgradeVsInstallationStats should count legacy installs as upgrades`() {
+        val upgradeData = listOf(
+            mapOf("weekStart" to "2026-01-05", "eventCount" to 10L)
+        )
+        val genuineInstallData = listOf(
+            mapOf("weekStart" to "2026-01-05", "deviceCount" to 20L)
+        )
+        val legacyInstallData = listOf(
+            mapOf("weekStart" to "2026-01-05", "deviceCount" to 5L)
+        )
+
+        whenever(upgradeEventRepository.countUpgradeEventsByWeek(any(), isNull())).thenReturn(upgradeData)
+        whenever(deviceRepository.countGenuineNewDevicesByWeek(any(), isNull())).thenReturn(genuineInstallData)
+        whenever(deviceRepository.countLegacyNewDevicesByWeek(any(), isNull())).thenReturn(legacyInstallData)
+
+        val result = statsService.getUpgradeVsInstallationStats()
+
+        assertEquals(1, result.size)
+        assertEquals("2026-01-05", result[0].week)
+        assertEquals(15L, result[0].upgrades) // 10 upgrade events + 5 legacy installs
+        assertEquals(20L, result[0].newInstallations) // only genuine new installs
     }
 
     @Test
@@ -256,7 +283,7 @@ class StatsServiceTest {
 
     @Test
     fun `getInstallChipOverTimeStats should return empty list when no data exists`() {
-        whenever(deviceRepository.countNewDevicesByWeekAndChip(any(), isNull())).thenReturn(emptyList())
+        whenever(deviceRepository.countGenuineNewDevicesByWeekAndChip(any(), isNull())).thenReturn(emptyList())
 
         val result = statsService.getInstallChipOverTimeStats()
 
@@ -264,14 +291,14 @@ class StatsServiceTest {
     }
 
     @Test
-    fun `getInstallChipOverTimeStats should return chip data grouped by week for new installations only`() {
+    fun `getInstallChipOverTimeStats should return chip data grouped by week for genuine new installations only`() {
         val installationData = listOf(
             mapOf("weekStart" to "2026-01-05", "chip" to "ESP32", "deviceCount" to 3L),
             mapOf("weekStart" to "2026-01-05", "chip" to "ESP8266", "deviceCount" to 2L),
             mapOf("weekStart" to "2026-01-12", "chip" to "ESP32", "deviceCount" to 7L)
         )
 
-        whenever(deviceRepository.countNewDevicesByWeekAndChip(any(), isNull())).thenReturn(installationData)
+        whenever(deviceRepository.countGenuineNewDevicesByWeekAndChip(any(), isNull())).thenReturn(installationData)
 
         val result = statsService.getInstallChipOverTimeStats()
 
