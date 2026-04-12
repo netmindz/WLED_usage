@@ -212,7 +212,7 @@ class StatsService(
 
         val countsByWeekAndChip = mutableMapOf<Pair<String, String>, Long>()
 
-        // Only count genuine new installations (led_count IS NULL = fresh installs with default 30 LEDs)
+        // Only count genuine new installations (led_count IS NULL, indicating a fresh install with default settings)
         deviceRepository.countGenuineNewDevicesByWeekAndChip(since, repo).forEach {
             val key = Pair(it["weekStart"].toString(), it["chip"] as String)
             countsByWeekAndChip.merge(key, (it["deviceCount"] as Number).toLong(), Long::plus)
