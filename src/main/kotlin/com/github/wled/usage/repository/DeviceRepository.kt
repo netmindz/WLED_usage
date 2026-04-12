@@ -67,6 +67,27 @@ interface DeviceRepository : CrudRepository<Device, String> {
     )
     fun countNewDevicesByWeekAndChip(since: LocalDateTime, repo: String? = null): List<Map<String, Any>>
 
+    // Genuine new installs: led_count is NULL because UsageService.isFreshInstall() nullifies it for fresh installs (no previous version + default 30 LEDs)
+    @Query(
+        value = "SELECT DATE(DATE_SUB(created, INTERVAL WEEKDAY(created) DAY)) as weekStart, COUNT(*) as deviceCount FROM device WHERE created >= :since AND led_count IS NULL AND (:repo IS NULL OR repo = :repo) GROUP BY weekStart ORDER BY weekStart",
+        nativeQuery = true
+    )
+    fun countGenuineNewDevicesByWeek(since: LocalDateTime, repo: String? = null): List<Map<String, Any>>
+
+    // Legacy installs: led_count is NOT NULL, meaning these devices had a non-default LED count and are treated as upgrades from an unknown version for graph purposes
+    @Query(
+        value = "SELECT DATE(DATE_SUB(created, INTERVAL WEEKDAY(created) DAY)) as weekStart, COUNT(*) as deviceCount FROM device WHERE created >= :since AND led_count IS NOT NULL AND (:repo IS NULL OR repo = :repo) GROUP BY weekStart ORDER BY weekStart",
+        nativeQuery = true
+    )
+    fun countLegacyNewDevicesByWeek(since: LocalDateTime, repo: String? = null): List<Map<String, Any>>
+
+    // Genuine new installs by chip: same logic as countGenuineNewDevicesByWeek, grouped by chip
+    @Query(
+        value = "SELECT DATE(DATE_SUB(created, INTERVAL WEEKDAY(created) DAY)) as weekStart, chip, COUNT(*) as deviceCount FROM device WHERE created >= :since AND led_count IS NULL AND chip IS NOT NULL AND (:repo IS NULL OR repo = :repo) GROUP BY weekStart, chip ORDER BY weekStart, chip",
+        nativeQuery = true
+    )
+    fun countGenuineNewDevicesByWeekAndChip(since: LocalDateTime, repo: String? = null): List<Map<String, Any>>
+
     fun findAllByRepo(repo: String): List<Device>
 
 }

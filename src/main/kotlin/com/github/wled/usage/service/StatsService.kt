@@ -114,19 +114,24 @@ class StatsService(
     fun getUpgradeVsInstallationStats(repo: String? = null): List<UpgradeVsInstallationWeeklyStats> {
         val since = LocalDateTime.now().minusMonths(3)
 
-        val upgradesByWeek = upgradeEventRepository.countUpgradeEventsByWeek(since, repo)
+        val upgradeEventsByWeek = upgradeEventRepository.countUpgradeEventsByWeek(since, repo)
             .associate { it["weekStart"].toString() to (it["eventCount"] as Number).toLong() }
 
-        val newDevicesByWeek = deviceRepository.countNewDevicesByWeek(since, repo)
+        // Legacy installs: new devices with led_count != null (not default 30), treated as upgrades for graphs
+        val legacyInstallsByWeek = deviceRepository.countLegacyNewDevicesByWeek(since, repo)
             .associate { it["weekStart"].toString() to (it["deviceCount"] as Number).toLong() }
 
-        val allWeeks = (upgradesByWeek.keys + newDevicesByWeek.keys).sorted()
+        // Genuine new installations: new devices with led_count = null (default 30, fresh installs)
+        val genuineNewDevicesByWeek = deviceRepository.countGenuineNewDevicesByWeek(since, repo)
+            .associate { it["weekStart"].toString() to (it["deviceCount"] as Number).toLong() }
+
+        val allWeeks = (upgradeEventsByWeek.keys + legacyInstallsByWeek.keys + genuineNewDevicesByWeek.keys).sorted()
 
         return allWeeks.map { week ->
             UpgradeVsInstallationWeeklyStats(
                 week = week,
-                upgrades = upgradesByWeek[week] ?: 0,
-                newInstallations = newDevicesByWeek[week] ?: 0
+                upgrades = (upgradeEventsByWeek[week] ?: 0) + (legacyInstallsByWeek[week] ?: 0),
+                newInstallations = genuineNewDevicesByWeek[week] ?: 0
             )
         }
     }
@@ -207,7 +212,8 @@ class StatsService(
 
         val countsByWeekAndChip = mutableMapOf<Pair<String, String>, Long>()
 
-        deviceRepository.countNewDevicesByWeekAndChip(since, repo).forEach {
+        // Only count genuine new installations (led_count IS NULL, indicating a fresh install with default settings)
+        deviceRepository.countGenuineNewDevicesByWeekAndChip(since, repo).forEach {
             val key = Pair(it["weekStart"].toString(), it["chip"] as String)
             countsByWeekAndChip.merge(key, (it["deviceCount"] as Number).toLong(), Long::plus)
         }
