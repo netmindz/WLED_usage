@@ -202,6 +202,27 @@ class StatsService(
             }
     }
 
+    fun getInstallChipOverTimeStats(repo: String? = null): List<ChipWeeklyStats> {
+        val since = LocalDateTime.now().minusMonths(3)
+
+        val countsByWeekAndChip = mutableMapOf<Pair<String, String>, Long>()
+
+        deviceRepository.countNewDevicesByWeekAndChip(since, repo).forEach {
+            val key = Pair(it["weekStart"].toString(), it["chip"] as String)
+            countsByWeekAndChip.merge(key, (it["deviceCount"] as Number).toLong(), Long::plus)
+        }
+
+        return countsByWeekAndChip.entries
+            .sortedWith(compareBy({ it.key.first }, { it.key.second }))
+            .map { (key, count) ->
+                ChipWeeklyStats(
+                    week = key.first,
+                    chip = key.second,
+                    count = count
+                )
+            }
+    }
+
     fun getVersionOverTimeStats(repo: String? = null): List<VersionWeeklyStats> {
         val since = LocalDateTime.now().minusMonths(3)
 

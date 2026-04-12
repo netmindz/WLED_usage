@@ -138,6 +138,12 @@
             margin: 20px 0;
         }
         
+        #install-chip-over-time-chart {
+            display: flex;
+            justify-content: center;
+            margin: 20px 0;
+        }
+        
         #running-versions-chart {
             display: flex;
             justify-content: center;
@@ -379,6 +385,14 @@
         </div>
         
         <div class="chart-section">
+            <div class="chart-title">Install Events by Chip (Last 3 Months)</div>
+            <div id="install-chip-over-time-loading" class="loading">Loading install chip over time data...</div>
+            <div id="install-chip-over-time-error" class="error" style="display: none;"></div>
+            <div id="install-chip-over-time-chart"></div>
+            <div id="install-chip-over-time-legend" class="legend"></div>
+        </div>
+        
+        <div class="chart-section">
             <div class="chart-title">WIP - broken  - Running Versions (Last 3 Months)</div>
             <div id="running-versions-loading" class="loading">Loading running versions data...</div>
             <div id="running-versions-error" class="error" style="display: none;"></div>
@@ -481,6 +495,7 @@
             loadUpgradeVsInstallationChart();
             loadVersionOverTimeChart();
             loadChipOverTimeChart();
+            loadInstallChipOverTimeChart();
             loadRunningVersionsChart();
             loadCountryChart();
         }
@@ -1837,6 +1852,197 @@
             
             // Create legend
             const legend = d3.select("#chip-over-time-legend");
+            chips.forEach(chip => {
+                const item = legend.append("div")
+                    .attr("class", "legend-item");
+                
+                item.append("div")
+                    .attr("class", "legend-color")
+                    .style("background-color", colorScale(chip));
+                
+                const total = pivoted.reduce((sum, d) => sum + d[chip], 0);
+                item.append("span")
+                    .text(`${chip} (${total.toLocaleString()} total)`);
+            });
+        }
+        
+        // Fetch and display install chip over time data
+        function loadInstallChipOverTimeChart() {
+        fetch(getStatsUrl('/api/stats/install-chip-over-time'))
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                document.getElementById('install-chip-over-time-loading').style.display = 'none';
+                
+                if (!data || data.length === 0) {
+                    document.getElementById('install-chip-over-time-error').textContent = 'No install chip over time data available';
+                    document.getElementById('install-chip-over-time-error').style.display = 'block';
+                    return;
+                }
+                
+                createInstallChipOverTimeChart(data);
+            })
+            .catch(error => {
+                console.error('Error fetching install chip over time data:', error);
+                document.getElementById('install-chip-over-time-loading').style.display = 'none';
+                document.getElementById('install-chip-over-time-error').textContent = 'Error loading install chip over time data: ' + error.message;
+                document.getElementById('install-chip-over-time-error').style.display = 'block';
+            });
+        }
+        
+        function createInstallChipOverTimeChart(data) {
+            const margin = {top: 20, right: 30, bottom: 50, left: 60};
+            const width = 800 - margin.left - margin.right;
+            const height = 400 - margin.top - margin.bottom;
+            
+            const parseDate = d3.timeParse("%Y-%m-%d");
+            const formatDate = d3.timeFormat("%b %d");
+            
+            // Get unique chips and weeks
+            const chips = [...new Set(data.map(d => d.chip))];
+            const weeks = [...new Set(data.map(d => d.week))].sort();
+            
+            // Pivot data: each row is a week with a property per chip
+            const pivoted = weeks.map(week => {
+                const row = { date: parseDate(week) };
+                chips.forEach(c => { row[c] = 0; });
+                data.filter(d => d.week === week).forEach(d => {
+                    row[d.chip] = d.count;
+                });
+                return row;
+            });
+            
+            const colorScale = d3.scaleOrdinal(d3.schemeTableau10).domain(chips);
+            
+            const stack = d3.stack().keys(chips);
+            const stackedData = stack(pivoted);
+            
+            const x = d3.scaleTime()
+                .domain(d3.extent(pivoted, d => d.date))
+                .range([0, width]);
+            
+            const y = d3.scaleLinear()
+                .domain([0, d3.max(stackedData, layer => d3.max(layer, d => d[1]))])
+                .nice()
+                .range([height, 0]);
+            
+            const svg = d3.select("#install-chip-over-time-chart")
+                .append("svg")
+                .attr("width", width + margin.left + margin.right)
+                .attr("height", height + margin.top + margin.bottom)
+                .append("g")
+                .attr("transform", `translate(${margin.left},${margin.top})`);
+            
+            const area = d3.area()
+                .x(d => x(d.data.date))
+                .y0(d => y(d[0]))
+                .y1(d => y(d[1]));
+            
+            const line = d3.line()
+                .x(d => x(d.data.date))
+                .y(d => y(d[1]));
+            
+            svg.selectAll(".layer")
+                .data(stackedData)
+                .enter()
+                .append("path")
+                .attr("class", "layer")
+                .attr("d", area)
+                .attr("fill", d => colorScale(d.key))
+                .attr("opacity", 0.6);
+            
+            svg.selectAll(".line")
+                .data(stackedData)
+                .enter()
+                .append("path")
+                .attr("class", "line")
+                .attr("d", line)
+                .attr("fill", "none")
+                .attr("stroke", d => colorScale(d.key))
+                .attr("stroke-width", 2);
+            
+            svg.append("g")
+                .attr("transform", `translate(0,${height})`)
+                .call(d3.axisBottom(x).ticks(d3.timeWeek.every(1)).tickFormat(formatDate))
+                .selectAll("text")
+                .attr("transform", "rotate(-45)")
+                .style("text-anchor", "end")
+                .attr("class", "axis-label");
+            
+            svg.append("g")
+                .call(d3.axisLeft(y).ticks(5))
+                .selectAll("text")
+                .attr("class", "axis-label");
+            
+            svg.append("text")
+                .attr("class", "axis-label")
+                .attr("text-anchor", "middle")
+                .attr("x", width / 2)
+                .attr("y", height + margin.bottom - 5)
+                .text("Week");
+            
+            svg.append("text")
+                .attr("class", "axis-label")
+                .attr("text-anchor", "middle")
+                .attr("transform", "rotate(-90)")
+                .attr("y", -margin.left + 15)
+                .attr("x", -height / 2)
+                .text("Count");
+            
+            // Add tooltip interaction
+            const bisect = d3.bisector(d => d.date).left;
+            
+            const focusGroup = svg.append("g")
+                .style("display", "none");
+            
+            focusGroup.append("line")
+                .attr("class", "focus-line")
+                .attr("y1", 0)
+                .attr("y2", height)
+                .attr("stroke", "#666")
+                .attr("stroke-dasharray", "3,3");
+            
+            svg.append("rect")
+                .attr("width", width)
+                .attr("height", height)
+                .attr("fill", "none")
+                .attr("pointer-events", "all")
+                .on("mouseover", () => focusGroup.style("display", null))
+                .on("mouseout", () => {
+                    focusGroup.style("display", "none");
+                    tooltip.style("opacity", 0);
+                })
+                .on("mousemove", function(event) {
+                    const x0 = x.invert(d3.pointer(event)[0]);
+                    const i = bisect(pivoted, x0, 1);
+                    const d0 = pivoted[i - 1];
+                    const d1 = pivoted[i];
+                    if (!d0) return;
+                    const d = (d1 && (x0 - d0.date > d1.date - x0)) ? d1 : d0;
+                    
+                    focusGroup.select(".focus-line")
+                        .attr("x1", x(d.date))
+                        .attr("x2", x(d.date));
+                    
+                    let tooltipHtml = `<strong>Week of ${formatDate(d.date)}</strong>`;
+                    chips.forEach(c => {
+                        if (d[c] > 0) {
+                            tooltipHtml += `<br/>${c}: ${d[c].toLocaleString()}`;
+                        }
+                    });
+                    
+                    tooltip.style("opacity", 1)
+                        .html(tooltipHtml)
+                        .style("left", (event.pageX + 10) + "px")
+                        .style("top", (event.pageY - 10) + "px");
+                });
+            
+            // Create legend
+            const legend = d3.select("#install-chip-over-time-legend");
             chips.forEach(chip => {
                 const item = legend.append("div")
                     .attr("class", "legend-item");
