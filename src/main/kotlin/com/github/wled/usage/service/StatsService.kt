@@ -112,7 +112,7 @@ class StatsService(
     }
     
     fun getUpgradeVsInstallationStats(repo: String? = null): List<UpgradeVsInstallationWeeklyStats> {
-        val since = LocalDateTime.now().minusMonths(3)
+        val since = LocalDateTime.now().minusMonths(6)
 
         val upgradeEventsByWeek = upgradeEventRepository.countUpgradeEventsByWeek(since, repo)
             .associate { it["weekStart"].toString() to (it["eventCount"] as Number).toLong() }
@@ -137,7 +137,7 @@ class StatsService(
     }
 
     fun getRunningVersionsStats(repo: String? = null): List<VersionWeeklyStats> {
-        val since = LocalDateTime.now().minusMonths(3)
+        val since = LocalDateTime.now().minusMonths(6)
 
         val weekStarts = generateWeekStarts(since)
         val devices = if (repo != null) {
@@ -182,7 +182,7 @@ class StatsService(
     }
 
     fun getChipOverTimeStats(repo: String? = null): List<ChipWeeklyStats> {
-        val since = LocalDateTime.now().minusMonths(3)
+        val since = LocalDateTime.now().minusMonths(6)
 
         val countsByWeekAndChip = mutableMapOf<Pair<String, String>, Long>()
 
@@ -208,7 +208,7 @@ class StatsService(
     }
 
     fun getInstallChipOverTimeStats(repo: String? = null): List<ChipWeeklyStats> {
-        val since = LocalDateTime.now().minusMonths(3)
+        val since = LocalDateTime.now().minusMonths(6)
 
         val countsByWeekAndChip = mutableMapOf<Pair<String, String>, Long>()
 
@@ -230,7 +230,7 @@ class StatsService(
     }
 
     fun getVersionOverTimeStats(repo: String? = null): List<VersionWeeklyStats> {
-        val since = LocalDateTime.now().minusMonths(3)
+        val since = LocalDateTime.now().minusMonths(6)
 
         // Combine upgrade events and new installations by week and version
         val countsByWeekAndVersion = mutableMapOf<Pair<String, String>, Long>()
@@ -330,7 +330,7 @@ class StatsService(
         val mondayOfSinceWeek = sinceDate.with(DayOfWeek.MONDAY)
         val today = LocalDate.now()
 
-        return (0..12)
+        return (0..25)
             .map { n -> mondayOfSinceWeek.plusWeeks(n.toLong()) }
             .filter { !it.isAfter(today) }
             .map { it.atStartOfDay() }
