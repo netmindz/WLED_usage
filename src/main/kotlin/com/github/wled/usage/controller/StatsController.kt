@@ -3,6 +3,7 @@ package com.github.wled.usage.controller
 import com.github.wled.usage.dto.ChipStats
 import com.github.wled.usage.dto.ChipWeeklyStats
 import com.github.wled.usage.dto.CountryStats
+import com.github.wled.usage.dto.FeatureStats
 import com.github.wled.usage.dto.FlashSizeStats
 import com.github.wled.usage.dto.LedCountRangeStats
 import com.github.wled.usage.dto.MatrixStats
@@ -155,5 +156,41 @@ class StatsController(
     ): List<VersionWeeklyStats> {
         validateRepoAccess(repo, authentication)
         return statsService.getRunningVersionsStats(repo)
+    }
+
+    @GetMapping("/led-features")
+    fun getLedFeaturesStats(
+        @RequestParam(required = false) repo: String?,
+        authentication: OAuth2AuthenticationToken?
+    ): List<FeatureStats> {
+        validateRepoAccess(repo, authentication)
+        return statsService.getDeviceCountByLedFeatures(repo)
+    }
+
+    @GetMapping("/peripherals")
+    fun getPeripheralsStats(
+        @RequestParam(required = false) repo: String?,
+        authentication: OAuth2AuthenticationToken?
+    ): List<FeatureStats> {
+        validateRepoAccess(repo, authentication)
+        return statsService.getDeviceCountByPeripherals(repo)
+    }
+
+    @GetMapping("/integrations")
+    fun getIntegrationsStats(
+        @RequestParam(required = false) repo: String?,
+        authentication: OAuth2AuthenticationToken?
+    ): List<FeatureStats> {
+        validateRepoAccess(repo, authentication)
+        return statsService.getDeviceCountByIntegrations(repo)
+    }
+
+    @GetMapping("/usermods")
+    fun getUsermodsStats(
+        @RequestParam(required = false) repo: String?,
+        authentication: OAuth2AuthenticationToken?
+    ): List<FeatureStats> {
+        validateRepoAccess(repo, authentication)
+        return statsService.getDeviceCountByUsermods(repo)
     }
 }

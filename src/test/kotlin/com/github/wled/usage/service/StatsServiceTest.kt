@@ -509,4 +509,78 @@ class StatsServiceTest {
             assertEquals(LocalDateTime.of(2026, 1, 12, 0, 0), result[1])
         }
     }
+
+    @Test
+    fun `getDeviceCountByLedFeatures should return feature stats grouped by combination`() {
+        val mockData = listOf(
+            mapOf("feature" to "PWM,DMA", "deviceCount" to 120L),
+            mapOf("feature" to "PWM", "deviceCount" to 80L)
+        )
+
+        whenever(deviceRepository.countDevicesByLedFeatures()).thenReturn(mockData)
+
+        val result = statsService.getDeviceCountByLedFeatures()
+
+        assertEquals(2, result.size)
+        assertEquals("PWM,DMA", result[0].feature)
+        assertEquals(120L, result[0].deviceCount)
+        assertEquals("PWM", result[1].feature)
+        assertEquals(80L, result[1].deviceCount)
+    }
+
+    @Test
+    fun `getDeviceCountByLedFeatures should return empty list when no data exists`() {
+        whenever(deviceRepository.countDevicesByLedFeatures()).thenReturn(emptyList())
+
+        val result = statsService.getDeviceCountByLedFeatures()
+
+        assertTrue(result.isEmpty())
+    }
+
+    @Test
+    fun `getDeviceCountByPeripherals should return feature stats grouped by combination`() {
+        val mockData = listOf(
+            mapOf("feature" to "IR,Button", "deviceCount" to 200L),
+            mapOf("feature" to "IR", "deviceCount" to 50L)
+        )
+
+        whenever(deviceRepository.countDevicesByPeripherals()).thenReturn(mockData)
+
+        val result = statsService.getDeviceCountByPeripherals()
+
+        assertEquals(2, result.size)
+        assertEquals("IR,Button", result[0].feature)
+        assertEquals(200L, result[0].deviceCount)
+    }
+
+    @Test
+    fun `getDeviceCountByIntegrations should return feature stats grouped by combination`() {
+        val mockData = listOf(
+            mapOf("feature" to "MQTT,HomeAssistant", "deviceCount" to 300L)
+        )
+
+        whenever(deviceRepository.countDevicesByIntegrations()).thenReturn(mockData)
+
+        val result = statsService.getDeviceCountByIntegrations()
+
+        assertEquals(1, result.size)
+        assertEquals("MQTT,HomeAssistant", result[0].feature)
+        assertEquals(300L, result[0].deviceCount)
+    }
+
+    @Test
+    fun `getDeviceCountByUsermods should return feature stats grouped by combination`() {
+        val mockData = listOf(
+            mapOf("feature" to "Battery,Temperature", "deviceCount" to 75L),
+            mapOf("feature" to "Battery", "deviceCount" to 40L)
+        )
+
+        whenever(deviceRepository.countDevicesByUsermods()).thenReturn(mockData)
+
+        val result = statsService.getDeviceCountByUsermods()
+
+        assertEquals(2, result.size)
+        assertEquals("Battery,Temperature", result[0].feature)
+        assertEquals(75L, result[0].deviceCount)
+    }
 }

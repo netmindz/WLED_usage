@@ -150,6 +150,30 @@
             margin: 20px 0;
         }
         
+        #led-features-chart {
+            display: flex;
+            justify-content: center;
+            margin: 20px 0;
+        }
+        
+        #peripherals-chart {
+            display: flex;
+            justify-content: center;
+            margin: 20px 0;
+        }
+        
+        #integrations-chart {
+            display: flex;
+            justify-content: center;
+            margin: 20px 0;
+        }
+        
+        #usermods-chart {
+            display: flex;
+            justify-content: center;
+            margin: 20px 0;
+        }
+        
         #country-chart {
             display: flex;
             justify-content: center;
@@ -401,6 +425,38 @@
         </div>
         
         <div class="chart-section">
+            <div class="chart-title">Device Distribution by LED Features</div>
+            <div id="led-features-loading" class="loading">Loading LED features data...</div>
+            <div id="led-features-error" class="error" style="display: none;"></div>
+            <div id="led-features-chart"></div>
+            <div id="led-features-legend" class="legend"></div>
+        </div>
+        
+        <div class="chart-section">
+            <div class="chart-title">Device Distribution by Peripherals</div>
+            <div id="peripherals-loading" class="loading">Loading peripherals data...</div>
+            <div id="peripherals-error" class="error" style="display: none;"></div>
+            <div id="peripherals-chart"></div>
+            <div id="peripherals-legend" class="legend"></div>
+        </div>
+        
+        <div class="chart-section">
+            <div class="chart-title">Device Distribution by Integrations</div>
+            <div id="integrations-loading" class="loading">Loading integrations data...</div>
+            <div id="integrations-error" class="error" style="display: none;"></div>
+            <div id="integrations-chart"></div>
+            <div id="integrations-legend" class="legend"></div>
+        </div>
+        
+        <div class="chart-section">
+            <div class="chart-title">Device Distribution by Usermods</div>
+            <div id="usermods-loading" class="loading">Loading usermods data...</div>
+            <div id="usermods-error" class="error" style="display: none;"></div>
+            <div id="usermods-chart"></div>
+            <div id="usermods-legend" class="legend"></div>
+        </div>
+        
+        <div class="chart-section">
             <div class="chart-title">Device Count by Country</div>
             <div id="country-loading" class="loading">Loading country data...</div>
             <div id="country-error" class="error" style="display: none;"></div>
@@ -497,6 +553,10 @@
             loadChipOverTimeChart();
             loadInstallChipOverTimeChart();
             loadRunningVersionsChart();
+            loadLedFeaturesChart();
+            loadPeripheralsChart();
+            loadIntegrationsChart();
+            loadUsermodsChart();
             loadCountryChart();
         }
 
@@ -2361,6 +2421,170 @@
                 item.append("span")
                     .text(`${d.countryCode} (${d.deviceCount.toLocaleString()} devices)`);
             });
+        }
+
+        // Generic helper to render a feature pie chart
+        function createFeaturePieChart(data, chartId, legendId) {
+            const topData = data.slice(0, 15);
+            if (data.length > 15) {
+                const othersCount = data.slice(15).reduce((sum, d) => sum + d.deviceCount, 0);
+                if (othersCount > 0) {
+                    topData.push({feature: 'Others', deviceCount: othersCount});
+                }
+            }
+
+            const pieWidth = 400;
+            const pieHeight = 400;
+            const radius = Math.min(pieWidth, pieHeight) / 2;
+
+            const svg = d3.select(`#${chartId}`)
+                .append("svg")
+                .attr("width", pieWidth)
+                .attr("height", pieHeight)
+                .append("g")
+                .attr("transform", `translate(${pieWidth / 2},${pieHeight / 2})`);
+
+            const pie = d3.pie()
+                .value(d => d.deviceCount)
+                .sort(null);
+
+            const arc = d3.arc()
+                .innerRadius(0)
+                .outerRadius(radius - 10);
+
+            const slices = svg.selectAll(".pie-slice")
+                .data(pie(topData))
+                .enter()
+                .append("g")
+                .attr("class", "slice");
+
+            slices.append("path")
+                .attr("class", "pie-slice")
+                .attr("d", arc)
+                .attr("fill", (d, i) => colorScale(i))
+                .on("mouseover", function(event, d) {
+                    const percentage = ((d.data.deviceCount / d3.sum(topData, d => d.deviceCount)) * 100).toFixed(1);
+                    tooltip.style("opacity", 1)
+                        .html(`<strong>${d.data.feature}</strong><br/>Devices: ${d.data.deviceCount.toLocaleString()}<br/>Percentage: ${percentage}%`)
+                        .style("left", (event.pageX + 10) + "px")
+                        .style("top", (event.pageY - 10) + "px");
+                })
+                .on("mouseout", function() {
+                    tooltip.style("opacity", 0);
+                });
+
+            slices.append("text")
+                .attr("class", "pie-label")
+                .attr("transform", d => `translate(${arc.centroid(d)})`)
+                .attr("text-anchor", "middle")
+                .style("fill", "white")
+                .style("font-weight", "bold")
+                .text(d => {
+                    const percentage = ((d.data.deviceCount / d3.sum(topData, d => d.deviceCount)) * 100);
+                    return percentage > 5 ? `${percentage.toFixed(1)}%` : '';
+                });
+
+            const legend = d3.select(`#${legendId}`);
+            topData.forEach((d, i) => {
+                const item = legend.append("div").attr("class", "legend-item");
+                item.append("div")
+                    .attr("class", "legend-color")
+                    .style("background-color", colorScale(i));
+                item.append("span")
+                    .text(`${d.feature} (${d.deviceCount.toLocaleString()})`);
+            });
+        }
+
+        function loadLedFeaturesChart() {
+            fetch(getStatsUrl('/api/stats/led-features'))
+                .then(response => {
+                    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                    return response.json();
+                })
+                .then(data => {
+                    document.getElementById('led-features-loading').style.display = 'none';
+                    if (!data || data.length === 0) {
+                        document.getElementById('led-features-error').textContent = 'No LED features data available';
+                        document.getElementById('led-features-error').style.display = 'block';
+                        return;
+                    }
+                    createFeaturePieChart(data, 'led-features-chart', 'led-features-legend');
+                })
+                .catch(error => {
+                    console.error('Error fetching LED features data:', error);
+                    document.getElementById('led-features-loading').style.display = 'none';
+                    document.getElementById('led-features-error').textContent = 'Error loading LED features data: ' + error.message;
+                    document.getElementById('led-features-error').style.display = 'block';
+                });
+        }
+
+        function loadPeripheralsChart() {
+            fetch(getStatsUrl('/api/stats/peripherals'))
+                .then(response => {
+                    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                    return response.json();
+                })
+                .then(data => {
+                    document.getElementById('peripherals-loading').style.display = 'none';
+                    if (!data || data.length === 0) {
+                        document.getElementById('peripherals-error').textContent = 'No peripherals data available';
+                        document.getElementById('peripherals-error').style.display = 'block';
+                        return;
+                    }
+                    createFeaturePieChart(data, 'peripherals-chart', 'peripherals-legend');
+                })
+                .catch(error => {
+                    console.error('Error fetching peripherals data:', error);
+                    document.getElementById('peripherals-loading').style.display = 'none';
+                    document.getElementById('peripherals-error').textContent = 'Error loading peripherals data: ' + error.message;
+                    document.getElementById('peripherals-error').style.display = 'block';
+                });
+        }
+
+        function loadIntegrationsChart() {
+            fetch(getStatsUrl('/api/stats/integrations'))
+                .then(response => {
+                    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                    return response.json();
+                })
+                .then(data => {
+                    document.getElementById('integrations-loading').style.display = 'none';
+                    if (!data || data.length === 0) {
+                        document.getElementById('integrations-error').textContent = 'No integrations data available';
+                        document.getElementById('integrations-error').style.display = 'block';
+                        return;
+                    }
+                    createFeaturePieChart(data, 'integrations-chart', 'integrations-legend');
+                })
+                .catch(error => {
+                    console.error('Error fetching integrations data:', error);
+                    document.getElementById('integrations-loading').style.display = 'none';
+                    document.getElementById('integrations-error').textContent = 'Error loading integrations data: ' + error.message;
+                    document.getElementById('integrations-error').style.display = 'block';
+                });
+        }
+
+        function loadUsermodsChart() {
+            fetch(getStatsUrl('/api/stats/usermods'))
+                .then(response => {
+                    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                    return response.json();
+                })
+                .then(data => {
+                    document.getElementById('usermods-loading').style.display = 'none';
+                    if (!data || data.length === 0) {
+                        document.getElementById('usermods-error').textContent = 'No usermods data available';
+                        document.getElementById('usermods-error').style.display = 'block';
+                        return;
+                    }
+                    createFeaturePieChart(data, 'usermods-chart', 'usermods-legend');
+                })
+                .catch(error => {
+                    console.error('Error fetching usermods data:', error);
+                    document.getElementById('usermods-loading').style.display = 'none';
+                    document.getElementById('usermods-error').textContent = 'Error loading usermods data: ' + error.message;
+                    document.getElementById('usermods-error').style.display = 'block';
+                });
         }
 
         // Fetch country data and world topology
