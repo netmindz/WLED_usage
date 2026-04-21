@@ -174,6 +174,12 @@
             margin: 20px 0;
         }
         
+        #bus-types-chart {
+            display: flex;
+            justify-content: center;
+            margin: 20px 0;
+        }
+        
         #country-chart {
             display: flex;
             justify-content: center;
@@ -457,6 +463,14 @@
         </div>
         
         <div class="chart-section">
+            <div class="chart-title">Device Distribution by Bus Types</div>
+            <div id="bus-types-loading" class="loading">Loading bus types data...</div>
+            <div id="bus-types-error" class="error" style="display: none;"></div>
+            <div id="bus-types-chart"></div>
+            <div id="bus-types-legend" class="legend"></div>
+        </div>
+        
+        <div class="chart-section">
             <div class="chart-title">Device Count by Country</div>
             <div id="country-loading" class="loading">Loading country data...</div>
             <div id="country-error" class="error" style="display: none;"></div>
@@ -557,6 +571,7 @@
             loadPeripheralsChart();
             loadIntegrationsChart();
             loadUsermodsChart();
+            loadBusTypesChart();
             loadCountryChart();
         }
 
@@ -2584,6 +2599,29 @@
                     document.getElementById('usermods-loading').style.display = 'none';
                     document.getElementById('usermods-error').textContent = 'Error loading usermods data: ' + error.message;
                     document.getElementById('usermods-error').style.display = 'block';
+                });
+        }
+
+        function loadBusTypesChart() {
+            fetch(getStatsUrl('/api/stats/bus-types'))
+                .then(response => {
+                    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                    return response.json();
+                })
+                .then(data => {
+                    document.getElementById('bus-types-loading').style.display = 'none';
+                    if (!data || data.length === 0) {
+                        document.getElementById('bus-types-error').textContent = 'No bus types data available';
+                        document.getElementById('bus-types-error').style.display = 'block';
+                        return;
+                    }
+                    createFeaturePieChart(data, 'bus-types-chart', 'bus-types-legend');
+                })
+                .catch(error => {
+                    console.error('Error fetching bus types data:', error);
+                    document.getElementById('bus-types-loading').style.display = 'none';
+                    document.getElementById('bus-types-error').textContent = 'Error loading bus types data: ' + error.message;
+                    document.getElementById('bus-types-error').style.display = 'block';
                 });
         }
 

@@ -778,4 +778,38 @@ class StatsControllerTest {
             .andExpect(content().contentType(MediaType.APPLICATION_JSON))
             .andExpect(jsonPath("$").isEmpty)
     }
+
+    @Test
+    fun `getBusTypesStats should return list of bus types statistics`() {
+        val mockStats = listOf(
+            FeatureStats("I2C,SPI", 150),
+            FeatureStats("I2C", 90)
+        )
+
+        whenever(statsService.getDeviceCountByBusTypes()).thenReturn(mockStats)
+
+        mockMvc.perform(
+            get("/api/stats/bus-types")
+                .contentType(MediaType.APPLICATION_JSON)
+        )
+            .andExpect(status().isOk)
+            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+            .andExpect(jsonPath("$[0].feature").value("I2C,SPI"))
+            .andExpect(jsonPath("$[0].deviceCount").value(150))
+            .andExpect(jsonPath("$[1].feature").value("I2C"))
+            .andExpect(jsonPath("$[1].deviceCount").value(90))
+    }
+
+    @Test
+    fun `getBusTypesStats should return empty list when no data exists`() {
+        whenever(statsService.getDeviceCountByBusTypes()).thenReturn(emptyList())
+
+        mockMvc.perform(
+            get("/api/stats/bus-types")
+                .contentType(MediaType.APPLICATION_JSON)
+        )
+            .andExpect(status().isOk)
+            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+            .andExpect(jsonPath("$").isEmpty)
+    }
 }

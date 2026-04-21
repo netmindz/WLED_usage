@@ -193,4 +193,13 @@ class StatsController(
         validateRepoAccess(repo, authentication)
         return statsService.getDeviceCountByUsermods(repo)
     }
+
+    @GetMapping("/bus-types")
+    fun getBusTypesStats(
+        @RequestParam(required = false) repo: String?,
+        authentication: OAuth2AuthenticationToken?
+    ): List<FeatureStats> {
+        validateRepoAccess(repo, authentication)
+        return statsService.getDeviceCountByBusTypes(repo)
+    }
 }
