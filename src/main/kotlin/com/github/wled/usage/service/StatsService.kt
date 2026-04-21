@@ -118,6 +118,15 @@ class StatsService(
         }
     }
 
+    fun getDeviceCountByBusTypes(repo: String? = null): List<FeatureStats> {
+        return deviceRepository.countDevicesByBusTypes(repo).map {
+            FeatureStats(
+                feature = it["feature"] as String,
+                deviceCount = it["deviceCount"] as Long
+            )
+        }
+    }
+
     fun getDeviceCountByReleaseName(repo: String? = null): List<ReleaseNameStats> {
         return deviceRepository.countDevicesByReleaseName(repo).map {
             ReleaseNameStats(
