@@ -3,6 +3,7 @@ package com.github.wled.usage.service
 import com.github.wled.usage.dto.ChipStats
 import com.github.wled.usage.dto.ChipWeeklyStats
 import com.github.wled.usage.dto.CountryStats
+import com.github.wled.usage.dto.FeatureStats
 import com.github.wled.usage.dto.FlashSizeStats
 import com.github.wled.usage.dto.LedCountRangeStats
 import com.github.wled.usage.dto.MatrixStats
@@ -81,6 +82,42 @@ class StatsService(
         }
     }
     
+    fun getDeviceCountByLedFeatures(repo: String? = null): List<FeatureStats> {
+        return deviceRepository.countDevicesByLedFeatures(repo).map {
+            FeatureStats(
+                feature = it["feature"] as String,
+                deviceCount = it["deviceCount"] as Long
+            )
+        }
+    }
+
+    fun getDeviceCountByPeripherals(repo: String? = null): List<FeatureStats> {
+        return deviceRepository.countDevicesByPeripherals(repo).map {
+            FeatureStats(
+                feature = it["feature"] as String,
+                deviceCount = it["deviceCount"] as Long
+            )
+        }
+    }
+
+    fun getDeviceCountByIntegrations(repo: String? = null): List<FeatureStats> {
+        return deviceRepository.countDevicesByIntegrations(repo).map {
+            FeatureStats(
+                feature = it["feature"] as String,
+                deviceCount = it["deviceCount"] as Long
+            )
+        }
+    }
+
+    fun getDeviceCountByUsermods(repo: String? = null): List<FeatureStats> {
+        return deviceRepository.countDevicesByUsermods(repo).map {
+            FeatureStats(
+                feature = it["feature"] as String,
+                deviceCount = it["deviceCount"] as Long
+            )
+        }
+    }
+
     fun getDeviceCountByReleaseName(repo: String? = null): List<ReleaseNameStats> {
         return deviceRepository.countDevicesByReleaseName(repo).map {
             ReleaseNameStats(

@@ -3,6 +3,7 @@ package com.github.wled.usage.controller
 import com.github.wled.usage.dto.ChipStats
 import com.github.wled.usage.dto.ChipWeeklyStats
 import com.github.wled.usage.dto.CountryStats
+import com.github.wled.usage.dto.FeatureStats
 import com.github.wled.usage.dto.FlashSizeStats
 import com.github.wled.usage.dto.LedCountRangeStats
 import com.github.wled.usage.dto.MatrixStats
@@ -640,5 +641,141 @@ class StatsControllerTest {
             .andExpect(content().contentType(MediaType.APPLICATION_JSON))
             .andExpect(jsonPath("$[0].version").value("0.14.0"))
             .andExpect(jsonPath("$[0].deviceCount").value(150))
+    }
+
+    @Test
+    fun `getLedFeaturesStats should return list of LED feature statistics`() {
+        val mockStats = listOf(
+            FeatureStats("PWM,DMA", 120),
+            FeatureStats("PWM", 80)
+        )
+
+        whenever(statsService.getDeviceCountByLedFeatures()).thenReturn(mockStats)
+
+        mockMvc.perform(
+            get("/api/stats/led-features")
+                .contentType(MediaType.APPLICATION_JSON)
+        )
+            .andExpect(status().isOk)
+            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+            .andExpect(jsonPath("$[0].feature").value("PWM,DMA"))
+            .andExpect(jsonPath("$[0].deviceCount").value(120))
+            .andExpect(jsonPath("$[1].feature").value("PWM"))
+            .andExpect(jsonPath("$[1].deviceCount").value(80))
+    }
+
+    @Test
+    fun `getLedFeaturesStats should return empty list when no data exists`() {
+        whenever(statsService.getDeviceCountByLedFeatures()).thenReturn(emptyList())
+
+        mockMvc.perform(
+            get("/api/stats/led-features")
+                .contentType(MediaType.APPLICATION_JSON)
+        )
+            .andExpect(status().isOk)
+            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+            .andExpect(jsonPath("$").isEmpty)
+    }
+
+    @Test
+    fun `getPeripheralsStats should return list of peripherals statistics`() {
+        val mockStats = listOf(
+            FeatureStats("IR,Button", 200),
+            FeatureStats("IR", 50)
+        )
+
+        whenever(statsService.getDeviceCountByPeripherals()).thenReturn(mockStats)
+
+        mockMvc.perform(
+            get("/api/stats/peripherals")
+                .contentType(MediaType.APPLICATION_JSON)
+        )
+            .andExpect(status().isOk)
+            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+            .andExpect(jsonPath("$[0].feature").value("IR,Button"))
+            .andExpect(jsonPath("$[0].deviceCount").value(200))
+            .andExpect(jsonPath("$[1].feature").value("IR"))
+            .andExpect(jsonPath("$[1].deviceCount").value(50))
+    }
+
+    @Test
+    fun `getPeripheralsStats should return empty list when no data exists`() {
+        whenever(statsService.getDeviceCountByPeripherals()).thenReturn(emptyList())
+
+        mockMvc.perform(
+            get("/api/stats/peripherals")
+                .contentType(MediaType.APPLICATION_JSON)
+        )
+            .andExpect(status().isOk)
+            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+            .andExpect(jsonPath("$").isEmpty)
+    }
+
+    @Test
+    fun `getIntegrationsStats should return list of integrations statistics`() {
+        val mockStats = listOf(
+            FeatureStats("MQTT,HomeAssistant", 300),
+            FeatureStats("MQTT", 100)
+        )
+
+        whenever(statsService.getDeviceCountByIntegrations()).thenReturn(mockStats)
+
+        mockMvc.perform(
+            get("/api/stats/integrations")
+                .contentType(MediaType.APPLICATION_JSON)
+        )
+            .andExpect(status().isOk)
+            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+            .andExpect(jsonPath("$[0].feature").value("MQTT,HomeAssistant"))
+            .andExpect(jsonPath("$[0].deviceCount").value(300))
+            .andExpect(jsonPath("$[1].feature").value("MQTT"))
+            .andExpect(jsonPath("$[1].deviceCount").value(100))
+    }
+
+    @Test
+    fun `getIntegrationsStats should return empty list when no data exists`() {
+        whenever(statsService.getDeviceCountByIntegrations()).thenReturn(emptyList())
+
+        mockMvc.perform(
+            get("/api/stats/integrations")
+                .contentType(MediaType.APPLICATION_JSON)
+        )
+            .andExpect(status().isOk)
+            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+            .andExpect(jsonPath("$").isEmpty)
+    }
+
+    @Test
+    fun `getUsermodsStats should return list of usermods statistics`() {
+        val mockStats = listOf(
+            FeatureStats("Battery,Temperature", 75),
+            FeatureStats("Battery", 40)
+        )
+
+        whenever(statsService.getDeviceCountByUsermods()).thenReturn(mockStats)
+
+        mockMvc.perform(
+            get("/api/stats/usermods")
+                .contentType(MediaType.APPLICATION_JSON)
+        )
+            .andExpect(status().isOk)
+            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+            .andExpect(jsonPath("$[0].feature").value("Battery,Temperature"))
+            .andExpect(jsonPath("$[0].deviceCount").value(75))
+            .andExpect(jsonPath("$[1].feature").value("Battery"))
+            .andExpect(jsonPath("$[1].deviceCount").value(40))
+    }
+
+    @Test
+    fun `getUsermodsStats should return empty list when no data exists`() {
+        whenever(statsService.getDeviceCountByUsermods()).thenReturn(emptyList())
+
+        mockMvc.perform(
+            get("/api/stats/usermods")
+                .contentType(MediaType.APPLICATION_JSON)
+        )
+            .andExpect(status().isOk)
+            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+            .andExpect(jsonPath("$").isEmpty)
     }
 }

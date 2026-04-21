@@ -90,4 +90,17 @@ interface DeviceRepository : CrudRepository<Device, String> {
 
     fun findAllByRepo(repo: String): List<Device>
 
+    // Feature stats: exclude fresh installs (led_count IS NULL = no previous version)
+    @Query("SELECT d.ledFeatures as feature, COUNT(d) as deviceCount FROM Device d WHERE d.ledFeatures IS NOT NULL AND d.ledCount IS NOT NULL AND (:repo IS NULL OR d.repo = :repo) GROUP BY d.ledFeatures ORDER BY COUNT(d) DESC")
+    fun countDevicesByLedFeatures(repo: String? = null): List<Map<String, Any>>
+
+    @Query("SELECT d.peripherals as feature, COUNT(d) as deviceCount FROM Device d WHERE d.peripherals IS NOT NULL AND d.ledCount IS NOT NULL AND (:repo IS NULL OR d.repo = :repo) GROUP BY d.peripherals ORDER BY COUNT(d) DESC")
+    fun countDevicesByPeripherals(repo: String? = null): List<Map<String, Any>>
+
+    @Query("SELECT d.integrations as feature, COUNT(d) as deviceCount FROM Device d WHERE d.integrations IS NOT NULL AND d.ledCount IS NOT NULL AND (:repo IS NULL OR d.repo = :repo) GROUP BY d.integrations ORDER BY COUNT(d) DESC")
+    fun countDevicesByIntegrations(repo: String? = null): List<Map<String, Any>>
+
+    @Query("SELECT d.usermods as feature, COUNT(d) as deviceCount FROM Device d WHERE d.usermods IS NOT NULL AND d.ledCount IS NOT NULL AND (:repo IS NULL OR d.repo = :repo) GROUP BY d.usermods ORDER BY COUNT(d) DESC")
+    fun countDevicesByUsermods(repo: String? = null): List<Map<String, Any>>
+
 }
