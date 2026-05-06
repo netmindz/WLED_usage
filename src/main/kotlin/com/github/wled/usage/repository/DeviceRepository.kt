@@ -106,4 +106,10 @@ interface DeviceRepository : CrudRepository<Device, String> {
     @Query("SELECT d.busTypes as feature, COUNT(d) as deviceCount FROM Device d WHERE d.busTypes IS NOT NULL AND d.ledCount IS NOT NULL AND (:repo IS NULL OR d.repo = :repo) GROUP BY d.busTypes ORDER BY COUNT(d) DESC")
     fun countDevicesByBusTypes(repo: String? = null): List<Map<String, Any>>
 
+    @Query("SELECT d.fsTotal as fsTotal, COUNT(d) as deviceCount FROM Device d WHERE d.fsTotal IS NOT NULL AND (:repo IS NULL OR d.repo = :repo) GROUP BY d.fsTotal ORDER BY COUNT(d) DESC")
+    fun countDevicesByFsTotal(repo: String? = null): List<Map<String, Any>>
+
+    @Query("SELECT d.fsUsed as fsUsed, COUNT(d) as deviceCount FROM Device d WHERE d.fsUsed IS NOT NULL AND (:repo IS NULL OR d.repo = :repo) GROUP BY d.fsUsed ORDER BY d.fsUsed ASC")
+    fun countDevicesByFsUsed(repo: String? = null): List<Map<String, Any>>
+
 }

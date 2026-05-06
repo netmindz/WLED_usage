@@ -5,6 +5,8 @@ import com.github.wled.usage.dto.ChipWeeklyStats
 import com.github.wled.usage.dto.CountryStats
 import com.github.wled.usage.dto.FeatureStats
 import com.github.wled.usage.dto.FlashSizeStats
+import com.github.wled.usage.dto.FsTotalStats
+import com.github.wled.usage.dto.FsUsageRangeStats
 import com.github.wled.usage.dto.LedCountRangeStats
 import com.github.wled.usage.dto.MatrixStats
 import com.github.wled.usage.dto.PsramSizeStats
@@ -806,6 +808,77 @@ class StatsControllerTest {
 
         mockMvc.perform(
             get("/api/stats/bus-types")
+                .contentType(MediaType.APPLICATION_JSON)
+        )
+            .andExpect(status().isOk)
+            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+            .andExpect(jsonPath("$").isEmpty)
+    }
+
+    @Test
+    fun `getFsTotalStats should return list of filesystem total size statistics`() {
+        val mockStats = listOf(
+            FsTotalStats("204800", 120),
+            FsTotalStats("1048576", 60)
+        )
+
+        whenever(statsService.getDeviceCountByFsTotal()).thenReturn(mockStats)
+
+        mockMvc.perform(
+            get("/api/stats/fs-total")
+                .contentType(MediaType.APPLICATION_JSON)
+        )
+            .andExpect(status().isOk)
+            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+            .andExpect(jsonPath("$[0].fsTotal").value("204800"))
+            .andExpect(jsonPath("$[0].deviceCount").value(120))
+            .andExpect(jsonPath("$[1].fsTotal").value("1048576"))
+            .andExpect(jsonPath("$[1].deviceCount").value(60))
+    }
+
+    @Test
+    fun `getFsTotalStats should return empty list when no data exists`() {
+        whenever(statsService.getDeviceCountByFsTotal()).thenReturn(emptyList())
+
+        mockMvc.perform(
+            get("/api/stats/fs-total")
+                .contentType(MediaType.APPLICATION_JSON)
+        )
+            .andExpect(status().isOk)
+            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+            .andExpect(jsonPath("$").isEmpty)
+    }
+
+    @Test
+    fun `getFsUsageStats should return list of filesystem usage range statistics`() {
+        val mockStats = listOf(
+            FsUsageRangeStats("0 – 4 KB", 200),
+            FsUsageRangeStats("4 – 64 KB", 150),
+            FsUsageRangeStats("> 4 MB", 50)
+        )
+
+        whenever(statsService.getDeviceCountByFsUsage()).thenReturn(mockStats)
+
+        mockMvc.perform(
+            get("/api/stats/fs-usage")
+                .contentType(MediaType.APPLICATION_JSON)
+        )
+            .andExpect(status().isOk)
+            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+            .andExpect(jsonPath("$[0].range").value("0 – 4 KB"))
+            .andExpect(jsonPath("$[0].deviceCount").value(200))
+            .andExpect(jsonPath("$[1].range").value("4 – 64 KB"))
+            .andExpect(jsonPath("$[1].deviceCount").value(150))
+            .andExpect(jsonPath("$[2].range").value("> 4 MB"))
+            .andExpect(jsonPath("$[2].deviceCount").value(50))
+    }
+
+    @Test
+    fun `getFsUsageStats should return empty list when no data exists`() {
+        whenever(statsService.getDeviceCountByFsUsage()).thenReturn(emptyList())
+
+        mockMvc.perform(
+            get("/api/stats/fs-usage")
                 .contentType(MediaType.APPLICATION_JSON)
         )
             .andExpect(status().isOk)

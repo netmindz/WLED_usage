@@ -5,6 +5,8 @@ import com.github.wled.usage.dto.ChipWeeklyStats
 import com.github.wled.usage.dto.CountryStats
 import com.github.wled.usage.dto.FeatureStats
 import com.github.wled.usage.dto.FlashSizeStats
+import com.github.wled.usage.dto.FsTotalStats
+import com.github.wled.usage.dto.FsUsageRangeStats
 import com.github.wled.usage.dto.LedCountRangeStats
 import com.github.wled.usage.dto.MatrixStats
 import com.github.wled.usage.dto.PsramSizeStats
@@ -157,6 +159,43 @@ class StatsService(
         return aggregateIntoRanges(ledCounts, ranges)
     }
     
+    fun getDeviceCountByFsTotal(repo: String? = null): List<FsTotalStats> {
+        return deviceRepository.countDevicesByFsTotal(repo).map {
+            FsTotalStats(
+                fsTotal = it["fsTotal"].toString(),
+                deviceCount = (it["deviceCount"] as Number).toLong()
+            )
+        }
+    }
+
+    fun getDeviceCountByFsUsage(repo: String? = null): List<FsUsageRangeStats> {
+        val rawData = deviceRepository.countDevicesByFsUsed(repo)
+        if (rawData.isEmpty()) {
+            return emptyList()
+        }
+
+        // Convert raw data to (fsUsed bytes, deviceCount) pairs
+        val fsUsedCounts = rawData.map {
+            Pair((it["fsUsed"] as Number).toLong(), (it["deviceCount"] as Number).toLong())
+        }
+
+        // Fixed 7 buckets by absolute byte usage (WLED filesystems are typically < 4 MB)
+        val buckets = listOf(
+            0L..4095L          to "0 – 4 KB",
+            4096L..65535L      to "4 – 64 KB",
+            65536L..262143L    to "64 – 256 KB",
+            262144L..1048575L  to "256 KB – 1 MB",
+            1048576L..2097151L to "1 – 2 MB",
+            2097152L..4194303L to "2 – 4 MB",
+            4194304L..Long.MAX_VALUE to "> 4 MB"
+        )
+
+        return buckets.map { (range, label) ->
+            val count = fsUsedCounts.filter { it.first in range }.sumOf { it.second }
+            FsUsageRangeStats(range = label, deviceCount = count)
+        }.filter { it.deviceCount > 0 }
+    }
+
     fun getUpgradeVsInstallationStats(repo: String? = null): List<UpgradeVsInstallationWeeklyStats> {
         val since = LocalDateTime.now().minusMonths(6)
 
