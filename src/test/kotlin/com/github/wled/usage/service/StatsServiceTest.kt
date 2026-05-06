@@ -354,6 +354,25 @@ class StatsServiceTest {
     }
 
     @Test
+    fun `getVersionOverTimeStats should limit to top 15 versions by total count`() {
+        // Create 20 versions with varying counts; only the top 15 by total should be returned
+        val upgradeData = (1..20).map { i ->
+            mapOf("weekStart" to "2026-01-05", "version" to "0.$i.0", "eventCount" to (21L - i))
+        }
+
+        whenever(upgradeEventRepository.countUpgradeEventsByWeekAndVersion(any(), isNull())).thenReturn(upgradeData)
+        whenever(deviceRepository.countNewDevicesByWeekAndVersion(any(), isNull())).thenReturn(emptyList())
+
+        val result = statsService.getVersionOverTimeStats()
+
+        // Should only contain the top 15 versions (versions 0.1.0 through 0.15.0 have the highest counts)
+        val returnedVersions = result.map { it.version }.toSet()
+        assertEquals(15, returnedVersions.size)
+        // The 5 lowest-count versions (0.16.0 through 0.20.0) should be excluded
+        assertTrue(returnedVersions.none { it in setOf("0.16.0", "0.17.0", "0.18.0", "0.19.0", "0.20.0") })
+    }
+
+    @Test
     fun `getRunningVersionsStats should return empty list when no devices exist`() {
         whenever(deviceRepository.findAll()).thenReturn(emptyList())
         whenever(upgradeEventRepository.findAllWithDevice()).thenReturn(emptyList())
