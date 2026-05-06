@@ -647,4 +647,106 @@ class StatsServiceTest {
 
         assertTrue(result.isEmpty())
     }
+
+    @Test
+    fun `getDeviceCountByFsTotal should return empty list when no data exists`() {
+        whenever(deviceRepository.countDevicesByFsTotal()).thenReturn(emptyList())
+
+        val result = statsService.getDeviceCountByFsTotal()
+
+        assertTrue(result.isEmpty())
+    }
+
+    @Test
+    fun `getDeviceCountByFsTotal should map raw data to FsTotalStats`() {
+        val mockData = listOf(
+            mapOf("fsTotal" to 204800, "deviceCount" to 100L),
+            mapOf("fsTotal" to 1048576, "deviceCount" to 50L)
+        )
+
+        whenever(deviceRepository.countDevicesByFsTotal()).thenReturn(mockData)
+
+        val result = statsService.getDeviceCountByFsTotal()
+
+        assertEquals(2, result.size)
+        assertEquals("204800", result[0].fsTotal)
+        assertEquals(100L, result[0].deviceCount)
+        assertEquals("1048576", result[1].fsTotal)
+        assertEquals(50L, result[1].deviceCount)
+    }
+
+    @Test
+    fun `getDeviceCountByFsUsage should return empty list when no data exists`() {
+        whenever(deviceRepository.countDevicesByFsUsed()).thenReturn(emptyList())
+
+        val result = statsService.getDeviceCountByFsUsage()
+
+        assertTrue(result.isEmpty())
+    }
+
+    @Test
+    fun `getDeviceCountByFsUsage should group devices into at most 7 byte-range buckets`() {
+        val mockData = listOf(
+            mapOf("fsUsed" to 0L,       "deviceCount" to 10L),  // 0 B       -> "0 – 4 KB"
+            mapOf("fsUsed" to 1024L,    "deviceCount" to 20L),  // 1 KB      -> "0 – 4 KB"
+            mapOf("fsUsed" to 10240L,   "deviceCount" to 30L),  // 10 KB     -> "4 – 64 KB"
+            mapOf("fsUsed" to 200000L,  "deviceCount" to 40L),  // ~195 KB   -> "64 – 256 KB"
+            mapOf("fsUsed" to 500000L,  "deviceCount" to 50L),  // ~488 KB   -> "256 KB – 1 MB"
+            mapOf("fsUsed" to 1500000L, "deviceCount" to 60L),  // ~1.4 MB   -> "1 – 2 MB"
+            mapOf("fsUsed" to 3000000L, "deviceCount" to 70L),  // ~2.9 MB   -> "2 – 4 MB"
+            mapOf("fsUsed" to 5000000L, "deviceCount" to 80L)   // ~4.8 MB   -> "> 4 MB"
+        )
+
+        whenever(deviceRepository.countDevicesByFsUsed()).thenReturn(mockData)
+
+        val result = statsService.getDeviceCountByFsUsage()
+
+        // Should have at most 7 groups, all non-empty
+        assertTrue(result.size <= 7)
+        assertTrue(result.isNotEmpty())
+
+        // 0 B and 1 KB -> "0 – 4 KB"
+        val bucket0to4k = result.find { it.range == "0 – 4 KB" }
+        assertEquals(30L, bucket0to4k?.deviceCount) // 10 + 20
+
+        // 10 KB -> "4 – 64 KB"
+        val bucket4to64k = result.find { it.range == "4 – 64 KB" }
+        assertEquals(30L, bucket4to64k?.deviceCount)
+
+        // ~195 KB -> "64 – 256 KB"
+        val bucket64to256k = result.find { it.range == "64 – 256 KB" }
+        assertEquals(40L, bucket64to256k?.deviceCount)
+
+        // ~488 KB -> "256 KB – 1 MB"
+        val bucket256kto1m = result.find { it.range == "256 KB – 1 MB" }
+        assertEquals(50L, bucket256kto1m?.deviceCount)
+
+        // ~1.4 MB -> "1 – 2 MB"
+        val bucket1to2m = result.find { it.range == "1 – 2 MB" }
+        assertEquals(60L, bucket1to2m?.deviceCount)
+
+        // ~2.9 MB -> "2 – 4 MB"
+        val bucket2to4m = result.find { it.range == "2 – 4 MB" }
+        assertEquals(70L, bucket2to4m?.deviceCount)
+
+        // ~4.8 MB -> "> 4 MB"
+        val bucketOver4m = result.find { it.range == "> 4 MB" }
+        assertEquals(80L, bucketOver4m?.deviceCount)
+    }
+
+    @Test
+    fun `getDeviceCountByFsUsage should only return buckets with data`() {
+        val mockData = listOf(
+            mapOf("fsUsed" to 1024L,    "deviceCount" to 5L),   // 1 KB  -> "0 – 4 KB"
+            mapOf("fsUsed" to 5000000L, "deviceCount" to 15L)   // ~4.8 MB -> "> 4 MB"
+        )
+
+        whenever(deviceRepository.countDevicesByFsUsed()).thenReturn(mockData)
+
+        val result = statsService.getDeviceCountByFsUsage()
+
+        // Only 2 buckets have data
+        assertEquals(2, result.size)
+        assertTrue(result.all { it.deviceCount > 0 })
+    }
 }
