@@ -174,28 +174,24 @@ class StatsService(
             return emptyList()
         }
 
-        // Convert raw data to (percentage, deviceCount) pairs
-        val percentages = rawData.map {
-            val fsUsed = (it["fsUsed"] as Number).toLong()
-            val fsTotal = (it["fsTotal"] as Number).toLong()
-            val deviceCount = (it["deviceCount"] as Number).toLong()
-            val pct = (fsUsed.toDouble() / fsTotal * 100).toInt().coerceIn(0, 100)
-            Pair(pct, deviceCount)
+        // Convert raw data to (fsUsed bytes, deviceCount) pairs
+        val fsUsedCounts = rawData.map {
+            Pair((it["fsUsed"] as Number).toLong(), (it["deviceCount"] as Number).toLong())
         }
 
-        // Fixed 7 buckets covering 0–100%
+        // Fixed 7 buckets by absolute byte usage (WLED filesystems are typically < 4 MB)
         val buckets = listOf(
-            0..14  to "0-14%",
-            15..29 to "15-29%",
-            30..44 to "30-44%",
-            45..59 to "45-59%",
-            60..74 to "60-74%",
-            75..89 to "75-89%",
-            90..100 to "90-100%"
+            0L..4095L          to "0 – 4 KB",
+            4096L..65535L      to "4 – 64 KB",
+            65536L..262143L    to "64 – 256 KB",
+            262144L..1048575L  to "256 KB – 1 MB",
+            1048576L..2097151L to "1 – 2 MB",
+            2097152L..4194303L to "2 – 4 MB",
+            4194304L..Long.MAX_VALUE to "> 4 MB"
         )
 
         return buckets.map { (range, label) ->
-            val count = percentages.filter { it.first in range }.sumOf { it.second }
+            val count = fsUsedCounts.filter { it.first in range }.sumOf { it.second }
             FsUsageRangeStats(range = label, deviceCount = count)
         }.filter { it.deviceCount > 0 }
     }

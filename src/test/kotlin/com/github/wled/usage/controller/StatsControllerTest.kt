@@ -852,9 +852,9 @@ class StatsControllerTest {
     @Test
     fun `getFsUsageStats should return list of filesystem usage range statistics`() {
         val mockStats = listOf(
-            FsUsageRangeStats("0-14%", 200),
-            FsUsageRangeStats("15-29%", 150),
-            FsUsageRangeStats("90-100%", 50)
+            FsUsageRangeStats("0 – 4 KB", 200),
+            FsUsageRangeStats("4 – 64 KB", 150),
+            FsUsageRangeStats("> 4 MB", 50)
         )
 
         whenever(statsService.getDeviceCountByFsUsage()).thenReturn(mockStats)
@@ -865,11 +865,11 @@ class StatsControllerTest {
         )
             .andExpect(status().isOk)
             .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-            .andExpect(jsonPath("$[0].range").value("0-14%"))
+            .andExpect(jsonPath("$[0].range").value("0 – 4 KB"))
             .andExpect(jsonPath("$[0].deviceCount").value(200))
-            .andExpect(jsonPath("$[1].range").value("15-29%"))
+            .andExpect(jsonPath("$[1].range").value("4 – 64 KB"))
             .andExpect(jsonPath("$[1].deviceCount").value(150))
-            .andExpect(jsonPath("$[2].range").value("90-100%"))
+            .andExpect(jsonPath("$[2].range").value("> 4 MB"))
             .andExpect(jsonPath("$[2].deviceCount").value(50))
     }
 
