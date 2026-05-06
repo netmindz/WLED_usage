@@ -179,7 +179,7 @@ class StatsService(
             val fsUsed = (it["fsUsed"] as Number).toLong()
             val fsTotal = (it["fsTotal"] as Number).toLong()
             val deviceCount = (it["deviceCount"] as Number).toLong()
-            val pct = (fsUsed * 100.0 / fsTotal).toInt().coerceIn(0, 100)
+            val pct = (fsUsed.toDouble() / fsTotal * 100).toInt().coerceIn(0, 100)
             Pair(pct, deviceCount)
         }
 
