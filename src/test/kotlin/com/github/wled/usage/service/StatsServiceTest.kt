@@ -6,6 +6,7 @@ import com.github.wled.usage.repository.DeviceRepository
 import com.github.wled.usage.repository.UpgradeEventRepository
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.mockito.kotlin.any
 import org.mockito.kotlin.isNull
@@ -601,6 +602,50 @@ class StatsServiceTest {
         assertEquals(2, result.size)
         assertEquals("Battery,Temperature", result[0].feature)
         assertEquals(75L, result[0].deviceCount)
+    }
+
+    @Test
+    fun `getDeviceCountByBusTypes should summarise repeated types and normalise ordering`() {
+        val mockData = listOf(
+            mapOf("feature" to "digital,digital,digital,network", "deviceCount" to 100L),
+            mapOf("feature" to "network,digital", "deviceCount" to 50L),
+            mapOf("feature" to "digital,network", "deviceCount" to 30L),
+            mapOf("feature" to "digital", "deviceCount" to 20L)
+        )
+
+        whenever(deviceRepository.countDevicesByBusTypes()).thenReturn(mockData)
+
+        val result = statsService.getDeviceCountByBusTypes()
+
+        // "network,digital" and "digital,network" both normalise to "digital, network"
+        val digitalNetwork = result.find { it.feature == "digital, network" }
+        assertNotNull(digitalNetwork)
+        assertEquals(80L, digitalNetwork!!.deviceCount)
+
+        // "digital,digital,digital,network" normalises to "3x digital, network"
+        val tripleDigitalNetwork = result.find { it.feature == "3x digital, network" }
+        assertNotNull(tripleDigitalNetwork)
+        assertEquals(100L, tripleDigitalNetwork!!.deviceCount)
+
+        // single "digital" stays as "digital"
+        val singleDigital = result.find { it.feature == "digital" }
+        assertNotNull(singleDigital)
+        assertEquals(20L, singleDigital!!.deviceCount)
+
+        // sorted by deviceCount descending
+        assertEquals(3, result.size)
+        assertEquals("3x digital, network", result[0].feature)
+        assertEquals("digital, network", result[1].feature)
+        assertEquals("digital", result[2].feature)
+    }
+
+    @Test
+    fun `getDeviceCountByBusTypes should return empty list when no data exists`() {
+        whenever(deviceRepository.countDevicesByBusTypes()).thenReturn(emptyList())
+
+        val result = statsService.getDeviceCountByBusTypes()
+
+        assertTrue(result.isEmpty())
     }
 
     @Test

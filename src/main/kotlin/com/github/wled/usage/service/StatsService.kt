@@ -121,12 +121,33 @@ class StatsService(
     }
 
     fun getDeviceCountByBusTypes(repo: String? = null): List<FeatureStats> {
-        return deviceRepository.countDevicesByBusTypes(repo).map {
-            FeatureStats(
-                feature = it["feature"] as String,
-                deviceCount = it["deviceCount"] as Long
-            )
+        val rawData = deviceRepository.countDevicesByBusTypes(repo)
+
+        // Normalize each bus-type list: split by comma, count occurrences of each type,
+        // sort alphabetically, then format as "Nx type" (or just "type" when count is 1).
+        // Aggregate entries that normalize to the same summary (order-independent).
+        val aggregated = mutableMapOf<String, Long>()
+        for (row in rawData) {
+            val rawFeature = row["feature"] as String
+            val deviceCount = row["deviceCount"] as Long
+
+            val typeCounts = rawFeature.split(",")
+                .map { it.trim() }
+                .groupingBy { it }
+                .eachCount()
+
+            val summary = typeCounts.entries
+                .sortedBy { it.key }
+                .joinToString(", ") { (type, count) ->
+                    if (count > 1) "${count}x $type" else type
+                }
+
+            aggregated.merge(summary, deviceCount, Long::plus)
         }
+
+        return aggregated.entries
+            .sortedByDescending { it.value }
+            .map { (feature, count) -> FeatureStats(feature = feature, deviceCount = count) }
     }
 
     fun getDeviceCountByReleaseName(repo: String? = null): List<ReleaseNameStats> {
