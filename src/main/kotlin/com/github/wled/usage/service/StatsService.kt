@@ -291,7 +291,18 @@ class StatsService(
             countsByWeekAndVersion.merge(key, (it["deviceCount"] as Number).toLong(), Long::plus)
         }
 
+        // Limit to top 15 versions by total event count across all weeks
+        val top15Versions = countsByWeekAndVersion.entries
+            .groupBy { it.key.second }
+            .mapValues { (_, entries) -> entries.sumOf { it.value } }
+            .entries
+            .sortedByDescending { it.value }
+            .take(15)
+            .map { it.key }
+            .toSet()
+
         return countsByWeekAndVersion.entries
+            .filter { it.key.second in top15Versions }
             .sortedWith(compareBy({ it.key.first }, { it.key.second }))
             .map { (key, count) ->
                 VersionWeeklyStats(
