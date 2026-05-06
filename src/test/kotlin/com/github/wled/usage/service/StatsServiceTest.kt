@@ -602,4 +602,106 @@ class StatsServiceTest {
         assertEquals("Battery,Temperature", result[0].feature)
         assertEquals(75L, result[0].deviceCount)
     }
+
+    @Test
+    fun `getDeviceCountByFsTotal should return empty list when no data exists`() {
+        whenever(deviceRepository.countDevicesByFsTotal()).thenReturn(emptyList())
+
+        val result = statsService.getDeviceCountByFsTotal()
+
+        assertTrue(result.isEmpty())
+    }
+
+    @Test
+    fun `getDeviceCountByFsTotal should map raw data to FsTotalStats`() {
+        val mockData = listOf(
+            mapOf("fsTotal" to 204800, "deviceCount" to 100L),
+            mapOf("fsTotal" to 1048576, "deviceCount" to 50L)
+        )
+
+        whenever(deviceRepository.countDevicesByFsTotal()).thenReturn(mockData)
+
+        val result = statsService.getDeviceCountByFsTotal()
+
+        assertEquals(2, result.size)
+        assertEquals("204800", result[0].fsTotal)
+        assertEquals(100L, result[0].deviceCount)
+        assertEquals("1048576", result[1].fsTotal)
+        assertEquals(50L, result[1].deviceCount)
+    }
+
+    @Test
+    fun `getDeviceCountByFsUsage should return empty list when no data exists`() {
+        whenever(deviceRepository.countDevicesByFsUsed()).thenReturn(emptyList())
+
+        val result = statsService.getDeviceCountByFsUsage()
+
+        assertTrue(result.isEmpty())
+    }
+
+    @Test
+    fun `getDeviceCountByFsUsage should group devices into at most 7 percentage buckets`() {
+        val mockData = listOf(
+            mapOf("fsUsed" to 0L,    "fsTotal" to 200000L, "deviceCount" to 10L),  // 0%   -> 0-14%
+            mapOf("fsUsed" to 20000L, "fsTotal" to 200000L, "deviceCount" to 20L),  // 10%  -> 0-14%
+            mapOf("fsUsed" to 50000L, "fsTotal" to 200000L, "deviceCount" to 30L),  // 25%  -> 15-29%
+            mapOf("fsUsed" to 80000L, "fsTotal" to 200000L, "deviceCount" to 40L),  // 40%  -> 30-44%
+            mapOf("fsUsed" to 100000L, "fsTotal" to 200000L, "deviceCount" to 50L), // 50%  -> 45-59%
+            mapOf("fsUsed" to 130000L, "fsTotal" to 200000L, "deviceCount" to 60L), // 65%  -> 60-74%
+            mapOf("fsUsed" to 160000L, "fsTotal" to 200000L, "deviceCount" to 70L), // 80%  -> 75-89%
+            mapOf("fsUsed" to 190000L, "fsTotal" to 200000L, "deviceCount" to 80L)  // 95%  -> 90-100%
+        )
+
+        whenever(deviceRepository.countDevicesByFsUsed()).thenReturn(mockData)
+
+        val result = statsService.getDeviceCountByFsUsage()
+
+        // Should have at most 7 groups, all non-empty
+        assertTrue(result.size <= 7)
+        assertTrue(result.isNotEmpty())
+
+        // 0% and 10% -> "0-14%"
+        val bucket0to14 = result.find { it.range == "0-14%" }
+        assertEquals(30L, bucket0to14?.deviceCount) // 10 + 20
+
+        // 25% -> "15-29%"
+        val bucket15to29 = result.find { it.range == "15-29%" }
+        assertEquals(30L, bucket15to29?.deviceCount)
+
+        // 40% -> "30-44%"
+        val bucket30to44 = result.find { it.range == "30-44%" }
+        assertEquals(40L, bucket30to44?.deviceCount)
+
+        // 50% -> "45-59%"
+        val bucket45to59 = result.find { it.range == "45-59%" }
+        assertEquals(50L, bucket45to59?.deviceCount)
+
+        // 65% -> "60-74%"
+        val bucket60to74 = result.find { it.range == "60-74%" }
+        assertEquals(60L, bucket60to74?.deviceCount)
+
+        // 80% -> "75-89%"
+        val bucket75to89 = result.find { it.range == "75-89%" }
+        assertEquals(70L, bucket75to89?.deviceCount)
+
+        // 95% -> "90-100%"
+        val bucket90to100 = result.find { it.range == "90-100%" }
+        assertEquals(80L, bucket90to100?.deviceCount)
+    }
+
+    @Test
+    fun `getDeviceCountByFsUsage should only return buckets with data`() {
+        val mockData = listOf(
+            mapOf("fsUsed" to 10000L, "fsTotal" to 200000L, "deviceCount" to 5L),  // 5%  -> 0-14%
+            mapOf("fsUsed" to 190000L, "fsTotal" to 200000L, "deviceCount" to 15L) // 95% -> 90-100%
+        )
+
+        whenever(deviceRepository.countDevicesByFsUsed()).thenReturn(mockData)
+
+        val result = statsService.getDeviceCountByFsUsage()
+
+        // Only 2 buckets have data
+        assertEquals(2, result.size)
+        assertTrue(result.all { it.deviceCount > 0 })
+    }
 }

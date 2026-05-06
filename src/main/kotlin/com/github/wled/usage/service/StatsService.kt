@@ -5,6 +5,8 @@ import com.github.wled.usage.dto.ChipWeeklyStats
 import com.github.wled.usage.dto.CountryStats
 import com.github.wled.usage.dto.FeatureStats
 import com.github.wled.usage.dto.FlashSizeStats
+import com.github.wled.usage.dto.FsTotalStats
+import com.github.wled.usage.dto.FsUsageRangeStats
 import com.github.wled.usage.dto.LedCountRangeStats
 import com.github.wled.usage.dto.MatrixStats
 import com.github.wled.usage.dto.PsramSizeStats
@@ -157,6 +159,47 @@ class StatsService(
         return aggregateIntoRanges(ledCounts, ranges)
     }
     
+    fun getDeviceCountByFsTotal(repo: String? = null): List<FsTotalStats> {
+        return deviceRepository.countDevicesByFsTotal(repo).map {
+            FsTotalStats(
+                fsTotal = it["fsTotal"].toString(),
+                deviceCount = (it["deviceCount"] as Number).toLong()
+            )
+        }
+    }
+
+    fun getDeviceCountByFsUsage(repo: String? = null): List<FsUsageRangeStats> {
+        val rawData = deviceRepository.countDevicesByFsUsed(repo)
+        if (rawData.isEmpty()) {
+            return emptyList()
+        }
+
+        // Convert raw data to (percentage, deviceCount) pairs
+        val percentages = rawData.map {
+            val fsUsed = (it["fsUsed"] as Number).toLong()
+            val fsTotal = (it["fsTotal"] as Number).toLong()
+            val deviceCount = (it["deviceCount"] as Number).toLong()
+            val pct = (fsUsed * 100.0 / fsTotal).toInt().coerceIn(0, 100)
+            Pair(pct, deviceCount)
+        }
+
+        // Fixed 7 buckets covering 0–100%
+        val buckets = listOf(
+            0..14  to "0-14%",
+            15..29 to "15-29%",
+            30..44 to "30-44%",
+            45..59 to "45-59%",
+            60..74 to "60-74%",
+            75..89 to "75-89%",
+            90..100 to "90-100%"
+        )
+
+        return buckets.map { (range, label) ->
+            val count = percentages.filter { it.first in range }.sumOf { it.second }
+            FsUsageRangeStats(range = label, deviceCount = count)
+        }.filter { it.deviceCount > 0 }
+    }
+
     fun getUpgradeVsInstallationStats(repo: String? = null): List<UpgradeVsInstallationWeeklyStats> {
         val since = LocalDateTime.now().minusMonths(6)
 

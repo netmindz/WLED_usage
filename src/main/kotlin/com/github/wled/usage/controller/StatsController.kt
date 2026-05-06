@@ -5,6 +5,8 @@ import com.github.wled.usage.dto.ChipWeeklyStats
 import com.github.wled.usage.dto.CountryStats
 import com.github.wled.usage.dto.FeatureStats
 import com.github.wled.usage.dto.FlashSizeStats
+import com.github.wled.usage.dto.FsTotalStats
+import com.github.wled.usage.dto.FsUsageRangeStats
 import com.github.wled.usage.dto.LedCountRangeStats
 import com.github.wled.usage.dto.MatrixStats
 import com.github.wled.usage.dto.PsramSizeStats
@@ -201,5 +203,23 @@ class StatsController(
     ): List<FeatureStats> {
         validateRepoAccess(repo, authentication)
         return statsService.getDeviceCountByBusTypes(repo)
+    }
+
+    @GetMapping("/fs-total")
+    fun getFsTotalStats(
+        @RequestParam(required = false) repo: String?,
+        authentication: OAuth2AuthenticationToken?
+    ): List<FsTotalStats> {
+        validateRepoAccess(repo, authentication)
+        return statsService.getDeviceCountByFsTotal(repo)
+    }
+
+    @GetMapping("/fs-usage")
+    fun getFsUsageStats(
+        @RequestParam(required = false) repo: String?,
+        authentication: OAuth2AuthenticationToken?
+    ): List<FsUsageRangeStats> {
+        validateRepoAccess(repo, authentication)
+        return statsService.getDeviceCountByFsUsage(repo)
     }
 }
