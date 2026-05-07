@@ -749,4 +749,135 @@ class StatsServiceTest {
         assertEquals(2, result.size)
         assertTrue(result.all { it.deviceCount > 0 })
     }
+
+    @Test
+    fun `getDeviceCountByPreviousVersion should return empty list when no devices exist`() {
+        whenever(deviceRepository.findAll()).thenReturn(emptyList())
+        whenever(upgradeEventRepository.findAllWithDevice()).thenReturn(emptyList())
+
+        val result = statsService.getDeviceCountByPreviousVersion()
+
+        assertTrue(result.isEmpty())
+    }
+
+    @Test
+    fun `getDeviceCountByPreviousVersion should count devices by their previous version`() {
+        val now = LocalDateTime.now()
+        val device1 = createDevice("d1", "0.14.0")
+        val device2 = createDevice("d2", "0.14.0")
+        val device3 = createDevice("d3", "0.14.0")
+
+        // device1 upgraded from 0.13.0 to 0.14.0
+        val event1 = createUpgradeEvent(device1, "0.13.0", "0.14.0", now.minusWeeks(1))
+        // device2 upgraded from 0.13.0 to 0.14.0 as well
+        val event2 = createUpgradeEvent(device2, "0.13.0", "0.14.0", now.minusWeeks(2))
+        // device3 upgraded from 0.12.0 to 0.14.0
+        val event3 = createUpgradeEvent(device3, "0.12.0", "0.14.0", now.minusWeeks(1))
+
+        whenever(deviceRepository.findAll()).thenReturn(listOf(device1, device2, device3))
+        whenever(upgradeEventRepository.findAllWithDevice()).thenReturn(listOf(event1, event2, event3))
+
+        val result = statsService.getDeviceCountByPreviousVersion()
+
+        assertEquals(2, result.size)
+        val v13 = result.find { it.previousVersion == "0.13.0" }
+        assertNotNull(v13)
+        assertEquals(2L, v13!!.deviceCount)
+        val v12 = result.find { it.previousVersion == "0.12.0" }
+        assertNotNull(v12)
+        assertEquals(1L, v12!!.deviceCount)
+    }
+
+    @Test
+    fun `getDeviceCountByPreviousVersion should ignore fresh installs (ledCount null or 30)`() {
+        val device1 = createDevice("d1", "0.14.0").copy(ledCount = null)
+        val device2 = createDevice("d2", "0.14.0").copy(ledCount = 30)
+
+        whenever(deviceRepository.findAll()).thenReturn(listOf(device1, device2))
+        whenever(upgradeEventRepository.findAllWithDevice()).thenReturn(emptyList())
+
+        val result = statsService.getDeviceCountByPreviousVersion()
+
+        assertTrue(result.isEmpty(), "Fresh installs should be ignored")
+    }
+
+    @Test
+    fun `getDeviceCountByPreviousVersion should show unknown for devices without upgrade events but non-default ledCount`() {
+        val device1 = createDevice("d1", "0.14.0").copy(ledCount = 100)
+        val device2 = createDevice("d2", "0.14.0").copy(ledCount = 60)
+
+        whenever(deviceRepository.findAll()).thenReturn(listOf(device1, device2))
+        whenever(upgradeEventRepository.findAllWithDevice()).thenReturn(emptyList())
+
+        val result = statsService.getDeviceCountByPreviousVersion()
+
+        assertEquals(1, result.size)
+        assertEquals("unknown", result[0].previousVersion)
+        assertEquals(2L, result[0].deviceCount)
+    }
+
+    @Test
+    fun `getDeviceCountByPreviousVersion should use most recent actual upgrade event`() {
+        val now = LocalDateTime.now()
+        val device = createDevice("d1", "0.15.0")
+
+        // check-in event (same version)
+        val checkin = createUpgradeEvent(device, "0.13.0", "0.13.0", now.minusWeeks(3))
+        // older real upgrade from 0.12.0
+        val olderUpgrade = createUpgradeEvent(device, "0.12.0", "0.13.0", now.minusWeeks(2))
+        // most recent real upgrade from 0.13.0
+        val latestUpgrade = createUpgradeEvent(device, "0.13.0", "0.15.0", now.minusWeeks(1))
+
+        whenever(deviceRepository.findAll()).thenReturn(listOf(device))
+        whenever(upgradeEventRepository.findAllWithDevice()).thenReturn(listOf(checkin, olderUpgrade, latestUpgrade))
+
+        val result = statsService.getDeviceCountByPreviousVersion()
+
+        assertEquals(1, result.size)
+        // Should use the most recent actual upgrade (0.13.0 -> 0.15.0), so previousVersion = "0.13.0"
+        assertEquals("0.13.0", result[0].previousVersion)
+        assertEquals(1L, result[0].deviceCount)
+    }
+
+    @Test
+    fun `getDeviceCountByPreviousVersion should ignore check-in events when determining previous version`() {
+        val now = LocalDateTime.now()
+        val device = createDevice("d1", "0.14.0").copy(ledCount = 100)
+
+        // Only check-in events (old == new)
+        val checkin1 = createUpgradeEvent(device, "0.14.0", "0.14.0", now.minusWeeks(1))
+        val checkin2 = createUpgradeEvent(device, "0.14.0", "0.14.0", now.minusWeeks(2))
+
+        whenever(deviceRepository.findAll()).thenReturn(listOf(device))
+        whenever(upgradeEventRepository.findAllWithDevice()).thenReturn(listOf(checkin1, checkin2))
+
+        val result = statsService.getDeviceCountByPreviousVersion()
+
+        // No real upgrades, ledCount is not 30/null → should show as unknown
+        assertEquals(1, result.size)
+        assertEquals("unknown", result[0].previousVersion)
+    }
+
+    @Test
+    fun `getDeviceCountByPreviousVersion should return results sorted by device count descending`() {
+        val now = LocalDateTime.now()
+        val device1 = createDevice("d1", "0.14.0")
+        val device2 = createDevice("d2", "0.14.0")
+        val device3 = createDevice("d3", "0.14.0")
+
+        val event1 = createUpgradeEvent(device1, "0.13.0", "0.14.0", now.minusWeeks(1))
+        val event2 = createUpgradeEvent(device2, "0.13.0", "0.14.0", now.minusWeeks(1))
+        val event3 = createUpgradeEvent(device3, "0.12.0", "0.14.0", now.minusWeeks(1))
+
+        whenever(deviceRepository.findAll()).thenReturn(listOf(device1, device2, device3))
+        whenever(upgradeEventRepository.findAllWithDevice()).thenReturn(listOf(event1, event2, event3))
+
+        val result = statsService.getDeviceCountByPreviousVersion()
+
+        // 0.13.0 has count=2, 0.12.0 has count=1 → sorted descending
+        assertEquals("0.13.0", result[0].previousVersion)
+        assertEquals(2L, result[0].deviceCount)
+        assertEquals("0.12.0", result[1].previousVersion)
+        assertEquals(1L, result[1].deviceCount)
+    }
 }

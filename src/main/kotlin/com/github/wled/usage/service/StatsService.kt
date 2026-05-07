@@ -9,6 +9,7 @@ import com.github.wled.usage.dto.FsTotalStats
 import com.github.wled.usage.dto.FsUsageRangeStats
 import com.github.wled.usage.dto.LedCountRangeStats
 import com.github.wled.usage.dto.MatrixStats
+import com.github.wled.usage.dto.PreviousVersionStats
 import com.github.wled.usage.dto.PsramSizeStats
 import com.github.wled.usage.dto.ReleaseNameStats
 import com.github.wled.usage.dto.UpgradeVsInstallationWeeklyStats
@@ -28,6 +29,11 @@ class StatsService(
     val deviceRepository: DeviceRepository,
     val upgradeEventRepository: UpgradeEventRepository
 ) {
+    companion object {
+        private const val DEFAULT_LED_COUNT = 30
+        private const val UNKNOWN_VERSION = "unknown"
+    }
+
     fun getKnownRepos(): List<String> = deviceRepository.findDistinctRepos()
 
     fun getDeviceCountByCountry(repo: String? = null): List<CountryStats> {
@@ -47,7 +53,46 @@ class StatsService(
             )
         }
     }
-    
+
+    fun getDeviceCountByPreviousVersion(repo: String? = null): List<PreviousVersionStats> {
+        val devices = if (repo != null) deviceRepository.findAllByRepo(repo) else deviceRepository.findAll().toList()
+        val allEvents = if (repo != null) {
+            upgradeEventRepository.findAllWithDeviceByRepo(repo)
+        } else {
+            upgradeEventRepository.findAllWithDevice()
+        }
+
+        val eventsByDeviceId = allEvents.groupBy { it.device.id }
+            .mapValues { (_, events) -> events.sortedBy { it.created } }
+
+        val counts = mutableMapOf<String, Long>()
+
+        for (device in devices) {
+            val deviceEvents = eventsByDeviceId[device.id] ?: emptyList()
+
+            // Find the most recent actual upgrade (oldVersion differs from newVersion)
+            val latestActualUpgrade = deviceEvents
+                .filter { it.oldVersion != it.newVersion }
+                .maxByOrNull { it.created ?: LocalDateTime.MIN }
+
+            if (latestActualUpgrade != null) {
+                counts.merge(latestActualUpgrade.oldVersion, 1, Long::plus)
+            } else {
+                // No actual upgrade found — classify by ledCount
+                val ledCount = device.ledCount
+                if (ledCount != null && ledCount != DEFAULT_LED_COUNT) {
+                    // Not a fresh install: previous version is unknown
+                    counts.merge(UNKNOWN_VERSION, 1, Long::plus)
+                }
+                // ledCount is null or DEFAULT_LED_COUNT → fresh install, skip
+            }
+        }
+
+        return counts.entries
+            .sortedByDescending { it.value }
+            .map { (version, count) -> PreviousVersionStats(previousVersion = version, deviceCount = count) }
+    }
+
     fun getDeviceCountByChip(repo: String? = null): List<ChipStats> {
         return deviceRepository.countDevicesByChip(repo).map {
             ChipStats(

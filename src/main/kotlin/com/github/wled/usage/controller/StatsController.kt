@@ -9,6 +9,7 @@ import com.github.wled.usage.dto.FsTotalStats
 import com.github.wled.usage.dto.FsUsageRangeStats
 import com.github.wled.usage.dto.LedCountRangeStats
 import com.github.wled.usage.dto.MatrixStats
+import com.github.wled.usage.dto.PreviousVersionStats
 import com.github.wled.usage.dto.PsramSizeStats
 import com.github.wled.usage.dto.ReleaseNameStats
 import com.github.wled.usage.dto.UpgradeVsInstallationWeeklyStats
@@ -203,6 +204,15 @@ class StatsController(
     ): List<FeatureStats> {
         validateRepoAccess(repo, authentication)
         return statsService.getDeviceCountByBusTypes(repo)
+    }
+
+    @GetMapping("/previous-version")
+    fun getPreviousVersionStats(
+        @RequestParam(required = false) repo: String?,
+        authentication: OAuth2AuthenticationToken?
+    ): List<PreviousVersionStats> {
+        validateRepoAccess(repo, authentication)
+        return statsService.getDeviceCountByPreviousVersion(repo)
     }
 
     @GetMapping("/fs-total")
