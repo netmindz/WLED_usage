@@ -72,8 +72,8 @@ class StatsService(
 
             // Find the most recent actual upgrade (oldVersion differs from newVersion)
             val latestActualUpgrade = deviceEvents
-                .filter { it.oldVersion != it.newVersion }
-                .maxByOrNull { it.created ?: LocalDateTime.MIN }
+                .filter { it.oldVersion != it.newVersion && it.created != null }
+                .maxByOrNull { it.created!! }
 
             if (latestActualUpgrade != null) {
                 counts.merge(latestActualUpgrade.oldVersion, 1, Long::plus)

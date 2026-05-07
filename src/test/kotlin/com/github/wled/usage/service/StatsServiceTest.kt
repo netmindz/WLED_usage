@@ -853,7 +853,7 @@ class StatsServiceTest {
 
         val result = statsService.getDeviceCountByPreviousVersion()
 
-        // No real upgrades, ledCount is not 30/null → should show as unknown
+        // No real upgrades, ledCount is not 30/null -> should show as unknown
         assertEquals(1, result.size)
         assertEquals("unknown", result[0].previousVersion)
     }
@@ -874,7 +874,7 @@ class StatsServiceTest {
 
         val result = statsService.getDeviceCountByPreviousVersion()
 
-        // 0.13.0 has count=2, 0.12.0 has count=1 → sorted descending
+        // 0.13.0 has count=2, 0.12.0 has count=1 -> sorted descending
         assertEquals("0.13.0", result[0].previousVersion)
         assertEquals(2L, result[0].deviceCount)
         assertEquals("0.12.0", result[1].previousVersion)
