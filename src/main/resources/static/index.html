@@ -1317,11 +1317,13 @@
             // Limit to top 10 ranges for better visualization
             const topData = data.slice(0, 10);
             
-            // If there are more ranges, group the rest as "Others"
+            // If there are more ranges, group the rest with a descriptive label (e.g. ">5000")
             if (data.length > 10) {
-                const othersCount = data.slice(10).reduce((sum, d) => sum + d.deviceCount, 0);
+                const othersData = data.slice(10);
+                const othersCount = othersData.reduce((sum, d) => sum + d.deviceCount, 0);
                 if (othersCount > 0) {
-                    topData.push({range: 'Others', deviceCount: othersCount});
+                    const firstStart = parseInt(othersData[0].range.split('-')[0]);
+                    topData.push({range: `>${firstStart - 1}`, deviceCount: othersCount});
                 }
             }
             
