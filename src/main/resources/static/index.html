@@ -407,6 +407,14 @@
         </div>
         
         <div class="chart-section">
+            <div class="chart-title">Device Distribution by Previous Version</div>
+            <div id="previous-version-loading" class="loading">Loading previous version data...</div>
+            <div id="previous-version-error" class="error" style="display: none;"></div>
+            <div id="previous-version-chart"></div>
+            <div id="previous-version-legend" class="legend"></div>
+        </div>
+        
+        <div class="chart-section">
             <div class="chart-title">Update Events - Upgrade New vs Installations (Last 6 Months)</div>
             <div id="upgrade-vs-installation-loading" class="loading">Loading upgrade vs installation data...</div>
             <div id="upgrade-vs-installation-error" class="error" style="display: none;"></div>
@@ -580,6 +588,7 @@
             loadLedCountChart();
             loadFsTotalChart();
             loadFsUsageChart();
+            loadPreviousVersionChart();
             loadUpgradeVsInstallationChart();
             loadVersionOverTimeChart();
             loadChipOverTimeChart();
@@ -1609,6 +1618,124 @@
 
                 item.append("span")
                     .text(`${d.range} (${d.deviceCount.toLocaleString()})`);
+            });
+        }
+
+        // Fetch and display previous version data
+        function loadPreviousVersionChart() {
+        fetch(getStatsUrl('/api/stats/previous-version'))
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                document.getElementById('previous-version-loading').style.display = 'none';
+
+                if (!data || data.length === 0) {
+                    document.getElementById('previous-version-error').textContent = 'No previous version data available';
+                    document.getElementById('previous-version-error').style.display = 'block';
+                    return;
+                }
+
+                createPreviousVersionChart(data);
+            })
+            .catch(error => {
+                console.error('Error fetching previous version data:', error);
+                document.getElementById('previous-version-loading').style.display = 'none';
+                document.getElementById('previous-version-error').textContent = 'Error loading previous version data: ' + error.message;
+                document.getElementById('previous-version-error').style.display = 'block';
+            });
+        }
+
+        function createPreviousVersionChart(data) {
+            // Limit to top 15 versions for readability
+            const topData = data.slice(0, 15);
+            if (data.length > 15) {
+                const othersCount = data.slice(15).reduce((sum, d) => sum + d.deviceCount, 0);
+                if (othersCount > 0) {
+                    topData.push({ previousVersion: 'Others', deviceCount: othersCount });
+                }
+            }
+
+            const margin = { top: 20, right: 30, bottom: 80, left: 60 };
+            const width = 600 - margin.left - margin.right;
+            const height = 350 - margin.top - margin.bottom;
+
+            const svg = d3.select("#previous-version-chart")
+                .append("svg")
+                .attr("width", width + margin.left + margin.right)
+                .attr("height", height + margin.top + margin.bottom)
+                .append("g")
+                .attr("transform", `translate(${margin.left},${margin.top})`);
+
+            const x = d3.scaleBand()
+                .domain(topData.map(d => d.previousVersion))
+                .range([0, width])
+                .padding(0.2);
+
+            const y = d3.scaleLinear()
+                .domain([0, d3.max(topData, d => d.deviceCount)])
+                .nice()
+                .range([height, 0]);
+
+            svg.append("g")
+                .attr("transform", `translate(0,${height})`)
+                .call(d3.axisBottom(x))
+                .selectAll("text")
+                .attr("transform", "rotate(-35)")
+                .style("text-anchor", "end");
+
+            svg.append("g")
+                .call(d3.axisLeft(y).ticks(5).tickFormat(d3.format(".2s")));
+
+            svg.selectAll(".prev-bar")
+                .data(topData)
+                .enter()
+                .append("rect")
+                .attr("class", "prev-bar")
+                .attr("x", d => x(d.previousVersion))
+                .attr("y", d => y(d.deviceCount))
+                .attr("width", x.bandwidth())
+                .attr("height", d => height - y(d.deviceCount))
+                .attr("fill", (d, i) => colorScale(i))
+                .on("mouseover", function(event, d) {
+                    tooltip.style("opacity", 1)
+                        .html(`<strong>${d.previousVersion}</strong><br>${d.deviceCount.toLocaleString()} devices`)
+                        .style("left", (event.pageX + 10) + "px")
+                        .style("top", (event.pageY - 28) + "px");
+                })
+                .on("mouseout", function() {
+                    tooltip.style("opacity", 0);
+                });
+
+            svg.append("text")
+                .attr("x", width / 2)
+                .attr("y", height + margin.bottom - 5)
+                .attr("text-anchor", "middle")
+                .style("font-size", "12px")
+                .text("Previous Version");
+
+            svg.append("text")
+                .attr("transform", "rotate(-90)")
+                .attr("y", -margin.left + 15)
+                .attr("x", -height / 2)
+                .attr("text-anchor", "middle")
+                .style("font-size", "12px")
+                .text("Device Count");
+
+            const legend = d3.select("#previous-version-legend");
+            topData.forEach((d, i) => {
+                const item = legend.append("div")
+                    .attr("class", "legend-item");
+
+                item.append("div")
+                    .attr("class", "legend-color")
+                    .style("background-color", colorScale(i));
+
+                item.append("span")
+                    .text(`${d.previousVersion} (${d.deviceCount.toLocaleString()})`);
             });
         }
 
