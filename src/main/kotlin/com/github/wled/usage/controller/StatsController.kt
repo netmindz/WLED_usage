@@ -16,6 +16,7 @@ import com.github.wled.usage.dto.UpgradeVsInstallationWeeklyStats
 import com.github.wled.usage.dto.VersionStats
 import com.github.wled.usage.dto.VersionWeeklyStats
 import com.github.wled.usage.service.GitHubUserService
+import com.github.wled.usage.service.GitHubUserService.Companion.WLED_MAIN_REPO
 import com.github.wled.usage.service.StatsService
 import org.springframework.http.HttpStatus
 import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken
@@ -39,6 +40,8 @@ class StatsController(
             throw ResponseStatusException(HttpStatus.FORBIDDEN, "Authentication required to filter by repo")
         }
         val allowedRepos = service.getWriteAccessRepos(authentication)
+        // Users with write access to the main wled/WLED repo can access all repos
+        if (allowedRepos.any { it.equals(WLED_MAIN_REPO, ignoreCase = true) }) return
         if (allowedRepos.none { it.equals(repo, ignoreCase = true) }) {
             throw ResponseStatusException(HttpStatus.FORBIDDEN, "You do not have write access to repo: $repo")
         }

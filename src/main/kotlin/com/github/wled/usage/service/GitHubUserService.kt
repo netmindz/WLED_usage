@@ -27,6 +27,10 @@ data class GitHubRepoPermissions(
 class GitHubUserService(
     private val authorizedClientService: OAuth2AuthorizedClientService
 ) {
+    companion object {
+        const val WLED_MAIN_REPO = "wled/WLED"
+    }
+
     private val logger = LoggerFactory.getLogger(GitHubUserService::class.java)
     private val restClient = RestClient.create()
 

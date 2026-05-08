@@ -885,4 +885,48 @@ class StatsControllerTest {
             .andExpect(content().contentType(MediaType.APPLICATION_JSON))
             .andExpect(jsonPath("$").isEmpty)
     }
+
+    @Test
+    fun `stats endpoint should allow access to any repo when user has write access to wled-WLED`() {
+        val mockStats = listOf(
+            VersionStats("0.14.0", 50)
+        )
+        val mockAuth = createMockAuth("wledmaintainer")
+
+        whenever(gitHubUserService.getWriteAccessRepos(any())).thenReturn(listOf("wled/WLED"))
+        whenever(statsService.getDeviceCountByVersion("netmindz/WLED-MM")).thenReturn(mockStats)
+
+        mockMvc.perform(
+            get("/api/stats/version")
+                .param("repo", "netmindz/WLED-MM")
+                .principal(mockAuth)
+                .contentType(MediaType.APPLICATION_JSON)
+        )
+            .andExpect(status().isOk)
+            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+            .andExpect(jsonPath("$[0].version").value("0.14.0"))
+            .andExpect(jsonPath("$[0].deviceCount").value(50))
+    }
+
+    @Test
+    fun `stats endpoint should allow access to any repo when user has write access to wled-WLED case-insensitively`() {
+        val mockStats = listOf(
+            VersionStats("0.14.0", 50)
+        )
+        val mockAuth = createMockAuth("wledmaintainer")
+
+        whenever(gitHubUserService.getWriteAccessRepos(any())).thenReturn(listOf("Wled/wled"))
+        whenever(statsService.getDeviceCountByVersion("netmindz/WLED-MM")).thenReturn(mockStats)
+
+        mockMvc.perform(
+            get("/api/stats/version")
+                .param("repo", "netmindz/WLED-MM")
+                .principal(mockAuth)
+                .contentType(MediaType.APPLICATION_JSON)
+        )
+            .andExpect(status().isOk)
+            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+            .andExpect(jsonPath("$[0].version").value("0.14.0"))
+            .andExpect(jsonPath("$[0].deviceCount").value(50))
+    }
 }
