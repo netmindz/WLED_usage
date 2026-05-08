@@ -1,6 +1,7 @@
 package com.github.wled.usage.controller
 
 import com.github.wled.usage.service.GitHubUserService
+import com.github.wled.usage.service.GitHubUserService.Companion.WLED_MAIN_REPO
 import com.github.wled.usage.service.StatsService
 import org.springframework.http.ResponseEntity
 import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken
@@ -34,6 +35,10 @@ class AuthController(private val gitHubUserService: GitHubUserService?, private 
         val knownRepos = statsService.getKnownRepos()
         val writeAccessRepos = gitHubUserService.getWriteAccessRepos(authentication)
         val writeAccessLower = writeAccessRepos.map { it.lowercase() }.toSet()
+        // If the user has write access to the main wled/WLED repo, they can view all repos
+        if (WLED_MAIN_REPO.lowercase() in writeAccessLower) {
+            return ResponseEntity.ok(knownRepos)
+        }
         // Return the repo names as stored in the DB, matched case-insensitively against what GitHub returned
         val repos = knownRepos.filter { it.lowercase() in writeAccessLower }
         return ResponseEntity.ok(repos)

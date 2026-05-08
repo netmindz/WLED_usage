@@ -105,6 +105,48 @@ class AuthControllerTest {
             .andExpect(jsonPath("$.length()").value(3))
     }
 
+    @Test
+    fun `getUserRepos should return all known repos when user has access to wled-WLED`() {
+        val mockAuth = createMockAuth()
+
+        whenever(statsService.getKnownRepos())
+            .thenReturn(listOf("owner/repo1", "netmindz/WLED-MM", "wled/wled"))
+        whenever(gitHubUserService.getWriteAccessRepos(any()))
+            .thenReturn(listOf("wled/WLED"))
+
+        mockMvc.perform(
+            get("/api/auth/repos")
+                .principal(mockAuth)
+                .contentType(MediaType.APPLICATION_JSON)
+        )
+            .andExpect(status().isOk)
+            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+            .andExpect(jsonPath("$.length()").value(3))
+            .andExpect(jsonPath("$[0]").value("owner/repo1"))
+            .andExpect(jsonPath("$[1]").value("netmindz/WLED-MM"))
+            .andExpect(jsonPath("$[2]").value("wled/wled"))
+    }
+
+    @Test
+    fun `getUserRepos should return all known repos when user has access to wled-WLED case-insensitively`() {
+        val mockAuth = createMockAuth()
+
+        whenever(statsService.getKnownRepos())
+            .thenReturn(listOf("owner/repo1", "netmindz/WLED-MM"))
+        // GitHub may return it in a different case
+        whenever(gitHubUserService.getWriteAccessRepos(any()))
+            .thenReturn(listOf("Wled/wled"))
+
+        mockMvc.perform(
+            get("/api/auth/repos")
+                .principal(mockAuth)
+                .contentType(MediaType.APPLICATION_JSON)
+        )
+            .andExpect(status().isOk)
+            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+            .andExpect(jsonPath("$.length()").value(2))
+    }
+
     private fun createMockAuth(): OAuth2AuthenticationToken {
         val attributes = mapOf(
             "login" to "testuser",
