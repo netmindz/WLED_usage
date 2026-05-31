@@ -7,6 +7,7 @@ import com.github.wled.usage.repository.UpgradeEventRepository
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
+import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.mockito.kotlin.any
 import org.mockito.kotlin.isNull
@@ -514,6 +515,38 @@ class StatsServiceTest {
         val latestV14count = latestWeek.value.find { it.version == "0.14.0" }?.count ?: 0
         assertTrue(latestV13count < 3, "Latest week should have fewer than 3 devices on 0.13.0, got $latestV13count")
         assertTrue(latestV14count > 0, "Latest week should have devices on 0.14.0, got $latestV14count")
+    }
+
+    @Test
+    fun `getRunningVersionsStats should limit to top 10 versions and group remainder as Other`() {
+        val now = LocalDateTime.now()
+        val created = now.minusMonths(5)
+
+        // Create 12 devices each on a distinct version; versions 1–10 have more devices than 11 and 12
+        val devices = (1..12).map { i ->
+            createDevice("d$i", "0.$i.0", created = created)
+        }
+        // Add extra devices on versions 1–10 so they outrank 11 and 12
+        val extraDevices = (1..10).map { i ->
+            createDevice("extra$i", "0.$i.0", created = created)
+        }
+
+        whenever(deviceRepository.findAll()).thenReturn(devices + extraDevices)
+        whenever(upgradeEventRepository.findAllWithDevice()).thenReturn(emptyList())
+
+        val result = statsService.getRunningVersionsStats()
+
+        val versionsInResult = result.map { it.version }.toSet()
+        // Should contain at most 10 named versions + "Other"
+        assertTrue(versionsInResult.size <= 11, "Expected at most 11 keys (10 versions + Other), got ${versionsInResult.size}")
+        // The two minority versions must be collapsed into "Other"
+        assertTrue(versionsInResult.contains("Other"), "Expected an 'Other' bucket")
+        assertFalse(versionsInResult.contains("0.11.0"), "0.11.0 should be collapsed into Other")
+        assertFalse(versionsInResult.contains("0.12.0"), "0.12.0 should be collapsed into Other")
+        // The top 10 most-populated versions must be present individually
+        (1..10).forEach { i ->
+            assertTrue(versionsInResult.contains("0.$i.0"), "0.$i.0 should be a named version")
+        }
     }
 
     @Test

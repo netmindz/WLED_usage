@@ -309,7 +309,8 @@ class StatsService(
         val eventsByDeviceId = allEvents.groupBy { it.device.id }
             .mapValues { (_, events) -> events.sortedBy { it.created } }
 
-        val results = mutableListOf<VersionWeeklyStats>()
+        // First pass: collect all version counts across all weeks to determine top 10
+        val weeklyVersionCounts = mutableListOf<Pair<String, Map<String, Long>>>()
 
         for (weekStart in weekStarts) {
             val weekEnd = weekStart.plusDays(7)
@@ -323,14 +324,32 @@ class StatsService(
                 versionCounts.merge(version, 1, Long::plus)
             }
 
-            versionCounts.entries
+            weeklyVersionCounts.add(weekStart.toLocalDate().toString() to versionCounts)
+        }
+
+        // Determine top 10 versions by total device count across all weeks
+        val top10Versions = weeklyVersionCounts
+            .flatMap { (_, counts) -> counts.entries }
+            .groupBy { it.key }
+            .mapValues { (_, entries) -> entries.sumOf { it.value } }
+            .entries
+            .sortedByDescending { it.value }
+            .take(10)
+            .map { it.key }
+            .toSet()
+
+        // Second pass: emit results, collapsing non-top-10 into "Other"
+        val results = mutableListOf<VersionWeeklyStats>()
+        for ((week, versionCounts) in weeklyVersionCounts) {
+            val collapsedCounts = mutableMapOf<String, Long>()
+            for ((version, count) in versionCounts) {
+                val key = if (version in top10Versions) version else "Other"
+                collapsedCounts.merge(key, count, Long::plus)
+            }
+            collapsedCounts.entries
                 .sortedBy { it.key }
                 .forEach { (version, count) ->
-                    results.add(VersionWeeklyStats(
-                        week = weekStart.toLocalDate().toString(),
-                        version = version,
-                        count = count
-                    ))
+                    results.add(VersionWeeklyStats(week = week, version = version, count = count))
                 }
         }
 
