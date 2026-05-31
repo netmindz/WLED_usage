@@ -518,16 +518,16 @@ class StatsServiceTest {
     }
 
     @Test
-    fun `getRunningVersionsStats should limit to top 10 versions and group remainder as Other`() {
+    fun `getRunningVersionsStats should limit to top 9 versions and group remainder as Other`() {
         val now = LocalDateTime.now()
         val created = now.minusMonths(5)
 
-        // Create 12 devices each on a distinct version; versions 1–10 have more devices than 11 and 12
-        val devices = (1..12).map { i ->
+        // Create 11 devices each on a distinct version; versions 1–9 have more devices than 10 and 11
+        val devices = (1..11).map { i ->
             createDevice("d$i", "0.$i.0", created = created)
         }
-        // Add extra devices on versions 1–10 so they outrank 11 and 12
-        val extraDevices = (1..10).map { i ->
+        // Add extra devices on versions 1–9 so they outrank 10 and 11
+        val extraDevices = (1..9).map { i ->
             createDevice("extra$i", "0.$i.0", created = created)
         }
 
@@ -537,14 +537,14 @@ class StatsServiceTest {
         val result = statsService.getRunningVersionsStats()
 
         val versionsInResult = result.map { it.version }.toSet()
-        // Should contain at most 10 named versions + "Other"
-        assertTrue(versionsInResult.size <= 11, "Expected at most 11 keys (10 versions + Other), got ${versionsInResult.size}")
+        // Should contain at most 9 named versions + "Other"
+        assertTrue(versionsInResult.size <= 10, "Expected at most 10 keys (9 versions + Other), got ${versionsInResult.size}")
         // The two minority versions must be collapsed into "Other"
         assertTrue(versionsInResult.contains("Other"), "Expected an 'Other' bucket")
+        assertFalse(versionsInResult.contains("0.10.0"), "0.10.0 should be collapsed into Other")
         assertFalse(versionsInResult.contains("0.11.0"), "0.11.0 should be collapsed into Other")
-        assertFalse(versionsInResult.contains("0.12.0"), "0.12.0 should be collapsed into Other")
-        // The top 10 most-populated versions must be present individually
-        (1..10).forEach { i ->
+        // The top 9 most-populated versions must be present individually
+        (1..9).forEach { i ->
             assertTrue(versionsInResult.contains("0.$i.0"), "0.$i.0 should be a named version")
         }
     }

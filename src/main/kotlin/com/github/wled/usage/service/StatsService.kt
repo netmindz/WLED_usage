@@ -327,14 +327,14 @@ class StatsService(
             weeklyVersionCounts.add(weekStart.toLocalDate().toString() to versionCounts)
         }
 
-        // Determine top 10 versions by total device count across all weeks
+        // Determine top 9 versions by total device count across all weeks (10th colour reserved for "Other")
         val top10Versions = weeklyVersionCounts
             .flatMap { (_, counts) -> counts.entries }
             .groupBy { it.key }
             .mapValues { (_, entries) -> entries.sumOf { it.value } }
             .entries
             .sortedByDescending { it.value }
-            .take(10)
+            .take(9)
             .map { it.key }
             .toSet()
 
