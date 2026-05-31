@@ -685,60 +685,47 @@ class StatsServiceTest {
     }
 
     @Test
-    fun `getDeviceCountByFsUsage should group devices into at most 7 byte-range buckets`() {
+    fun `getDeviceCountByFsUsage should group devices into correct byte-range buckets`() {
         val mockData = listOf(
-            mapOf("fsUsed" to 0L,       "deviceCount" to 10L),  // 0 B       -> "0 – 4 KB"
-            mapOf("fsUsed" to 1024L,    "deviceCount" to 20L),  // 1 KB      -> "0 – 4 KB"
-            mapOf("fsUsed" to 10240L,   "deviceCount" to 30L),  // 10 KB     -> "4 – 64 KB"
-            mapOf("fsUsed" to 200000L,  "deviceCount" to 40L),  // ~195 KB   -> "64 – 256 KB"
-            mapOf("fsUsed" to 500000L,  "deviceCount" to 50L),  // ~488 KB   -> "256 KB – 1 MB"
-            mapOf("fsUsed" to 1500000L, "deviceCount" to 60L),  // ~1.4 MB   -> "1 – 2 MB"
-            mapOf("fsUsed" to 3000000L, "deviceCount" to 70L),  // ~2.9 MB   -> "2 – 4 MB"
-            mapOf("fsUsed" to 5000000L, "deviceCount" to 80L)   // ~4.8 MB   -> "> 4 MB"
+            mapOf("fsUsed" to 0L,       "deviceCount" to 10L),  // 0 B         -> "0 B"
+            mapOf("fsUsed" to 16L,      "deviceCount" to 20L),  // 16 B        -> "1 – 32 B"
+            mapOf("fsUsed" to 32L,      "deviceCount" to 5L),   // 32 B        -> "1 – 32 B"
+            mapOf("fsUsed" to 49L,      "deviceCount" to 30L),  // 49 B        -> "33 – 64 B"
+            mapOf("fsUsed" to 100L,     "deviceCount" to 40L),  // 100 B       -> "65 – 128 B"
+            mapOf("fsUsed" to 300L,     "deviceCount" to 50L),  // 300 B       -> "129 – 512 B"
+            mapOf("fsUsed" to 800L,     "deviceCount" to 60L),  // 800 B       -> "513 B – 1 KB"
+            mapOf("fsUsed" to 2000L,    "deviceCount" to 70L),  // 2000 B      -> "1 – 4 KB"
+            mapOf("fsUsed" to 8000L,    "deviceCount" to 80L),  // 8000 B      -> "4 – 64 KB"
+            mapOf("fsUsed" to 100000L,  "deviceCount" to 90L),  // 100 KB      -> "64 – 512 KB"
+            mapOf("fsUsed" to 600000L,  "deviceCount" to 100L), // 600 KB      -> "512 KB – 1 MB"
+            mapOf("fsUsed" to 1100000L, "deviceCount" to 110L)  // 1.1 MB      -> "> 1 MB"
         )
 
         whenever(deviceRepository.countDevicesByFsUsed()).thenReturn(mockData)
 
         val result = statsService.getDeviceCountByFsUsage()
 
-        // Should have at most 7 groups, all non-empty
-        assertTrue(result.size <= 7)
+        assertTrue(result.size <= 11)
         assertTrue(result.isNotEmpty())
 
-        // 0 B and 1 KB -> "0 – 4 KB"
-        val bucket0to4k = result.find { it.range == "0 – 4 KB" }
-        assertEquals(30L, bucket0to4k?.deviceCount) // 10 + 20
-
-        // 10 KB -> "4 – 64 KB"
-        val bucket4to64k = result.find { it.range == "4 – 64 KB" }
-        assertEquals(30L, bucket4to64k?.deviceCount)
-
-        // ~195 KB -> "64 – 256 KB"
-        val bucket64to256k = result.find { it.range == "64 – 256 KB" }
-        assertEquals(40L, bucket64to256k?.deviceCount)
-
-        // ~488 KB -> "256 KB – 1 MB"
-        val bucket256kto1m = result.find { it.range == "256 KB – 1 MB" }
-        assertEquals(50L, bucket256kto1m?.deviceCount)
-
-        // ~1.4 MB -> "1 – 2 MB"
-        val bucket1to2m = result.find { it.range == "1 – 2 MB" }
-        assertEquals(60L, bucket1to2m?.deviceCount)
-
-        // ~2.9 MB -> "2 – 4 MB"
-        val bucket2to4m = result.find { it.range == "2 – 4 MB" }
-        assertEquals(70L, bucket2to4m?.deviceCount)
-
-        // ~4.8 MB -> "> 4 MB"
-        val bucketOver4m = result.find { it.range == "> 4 MB" }
-        assertEquals(80L, bucketOver4m?.deviceCount)
+        assertEquals(10L,  result.find { it.range == "0 B" }?.deviceCount)
+        assertEquals(25L,  result.find { it.range == "1 – 32 B" }?.deviceCount)   // 20 + 5
+        assertEquals(30L,  result.find { it.range == "33 – 64 B" }?.deviceCount)
+        assertEquals(40L,  result.find { it.range == "65 – 128 B" }?.deviceCount)
+        assertEquals(50L,  result.find { it.range == "129 – 512 B" }?.deviceCount)
+        assertEquals(60L,  result.find { it.range == "513 B – 1 KB" }?.deviceCount)
+        assertEquals(70L,  result.find { it.range == "1 – 4 KB" }?.deviceCount)
+        assertEquals(80L,  result.find { it.range == "4 – 64 KB" }?.deviceCount)
+        assertEquals(90L,  result.find { it.range == "64 – 512 KB" }?.deviceCount)
+        assertEquals(100L, result.find { it.range == "512 KB – 1 MB" }?.deviceCount)
+        assertEquals(110L, result.find { it.range == "> 1 MB" }?.deviceCount)
     }
 
     @Test
     fun `getDeviceCountByFsUsage should only return buckets with data`() {
         val mockData = listOf(
-            mapOf("fsUsed" to 1024L,    "deviceCount" to 5L),   // 1 KB  -> "0 – 4 KB"
-            mapOf("fsUsed" to 5000000L, "deviceCount" to 15L)   // ~4.8 MB -> "> 4 MB"
+            mapOf("fsUsed" to 16L,      "deviceCount" to 5L),   // 16 B   -> "1 – 32 B"
+            mapOf("fsUsed" to 600000L,  "deviceCount" to 15L)   // 600 KB -> "512 KB – 1 MB"
         )
 
         whenever(deviceRepository.countDevicesByFsUsed()).thenReturn(mockData)

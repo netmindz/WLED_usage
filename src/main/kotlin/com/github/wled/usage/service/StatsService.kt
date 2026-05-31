@@ -245,15 +245,20 @@ class StatsService(
             Pair((it["fsUsed"] as Number).toLong(), (it["deviceCount"] as Number).toLong())
         }
 
-        // Fixed 7 buckets by absolute byte usage (WLED filesystems are typically < 4 MB)
+        // Fixed buckets by absolute byte usage - fine-grained at low end (current data),
+        // with larger buckets up to ~1 MB (the realistic max filesystem size on WLED devices)
         val buckets = listOf(
-            0L..4095L          to "0 – 4 KB",
-            4096L..65535L      to "4 – 64 KB",
-            65536L..262143L    to "64 – 256 KB",
-            262144L..1048575L  to "256 KB – 1 MB",
-            1048576L..2097151L to "1 – 2 MB",
-            2097152L..4194303L to "2 – 4 MB",
-            4194304L..Long.MAX_VALUE to "> 4 MB"
+            0L..0L               to "0 B",
+            1L..32L              to "1 – 32 B",
+            33L..64L             to "33 – 64 B",
+            65L..128L            to "65 – 128 B",
+            129L..512L           to "129 – 512 B",
+            513L..1023L          to "513 B – 1 KB",
+            1024L..4095L         to "1 – 4 KB",
+            4096L..65535L        to "4 – 64 KB",
+            65536L..524287L      to "64 – 512 KB",
+            524288L..1048575L    to "512 KB – 1 MB",
+            1048576L..Long.MAX_VALUE to "> 1 MB"
         )
 
         return buckets.map { (range, label) ->
