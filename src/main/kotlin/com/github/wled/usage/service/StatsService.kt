@@ -111,10 +111,17 @@ class StatsService(
         }
     }
     
+    /** Sizes are stored as integer MB; the psram query also yields labels such as "None". */
+    private fun formatSizeLabel(value: Any?): String = when (value) {
+        is Number -> "${value}MB"
+        is String -> if (value.isNotEmpty() && value.all { it.isDigit() }) "${value}MB" else value
+        else -> "Unknown"
+    }
+
     fun getDeviceCountByFlashSize(repo: String? = null): List<FlashSizeStats> {
         return deviceRepository.countDevicesByFlashSize(repo).map {
             FlashSizeStats(
-                flashSize = it["flashSize"] as String,
+                flashSize = formatSizeLabel(it["flashSize"]),
                 deviceCount = it["deviceCount"] as Long
             )
         }
@@ -123,7 +130,7 @@ class StatsService(
     fun getDeviceCountByPsramSize(repo: String? = null): List<PsramSizeStats> {
         return deviceRepository.countDevicesByPsramSize(repo).map {
             PsramSizeStats(
-                psramSize = it["psramSize"] as String,
+                psramSize = formatSizeLabel(it["psramSize"]),
                 deviceCount = it["deviceCount"] as Long
             )
         }

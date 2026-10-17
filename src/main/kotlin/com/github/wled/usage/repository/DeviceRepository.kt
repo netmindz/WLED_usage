@@ -31,7 +31,7 @@ interface DeviceRepository : CrudRepository<Device, String> {
     @Query("""
         SELECT CASE 
             WHEN d.psramPresent = false THEN 'None'
-            WHEN d.psramPresent = true AND d.psramSize IS NOT NULL THEN d.psramSize
+            WHEN d.psramPresent = true AND d.psramSize IS NOT NULL THEN CAST(d.psramSize AS string)
             ELSE 'Unknown'
         END as psramSize, 
         COUNT(d) as deviceCount 
@@ -39,7 +39,7 @@ interface DeviceRepository : CrudRepository<Device, String> {
         WHERE d.psramPresent IS NOT NULL AND (:repo IS NULL OR d.repo = :repo)
         GROUP BY CASE 
             WHEN d.psramPresent = false THEN 'None'
-            WHEN d.psramPresent = true AND d.psramSize IS NOT NULL THEN d.psramSize
+            WHEN d.psramPresent = true AND d.psramSize IS NOT NULL THEN CAST(d.psramSize AS string)
             ELSE 'Unknown'
         END 
         ORDER BY COUNT(d) DESC

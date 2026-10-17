@@ -160,6 +160,29 @@ class StatsServiceTest {
     }
 
     @Test
+    fun `getDeviceCountByFlashSize should format integer sizes stored on the entity`() {
+        whenever(deviceRepository.countDevicesByFlashSize()).thenReturn(
+            listOf(mapOf("flashSize" to 4, "deviceCount" to 10L))
+        )
+
+        val result = statsService.getDeviceCountByFlashSize()
+
+        assertEquals("4MB", result.single().flashSize)
+        assertEquals(10L, result.single().deviceCount)
+    }
+
+    @Test
+    fun `getDeviceCountByPsramSize should format numeric strings and keep None`() {
+        whenever(deviceRepository.countDevicesByPsramSize()).thenReturn(
+            listOf(mapOf("psramSize" to "2", "deviceCount" to 3L), mapOf("psramSize" to "None", "deviceCount" to 1L))
+        )
+
+        val result = statsService.getDeviceCountByPsramSize()
+
+        assertEquals(listOf("2MB", "None"), result.map { it.psramSize })
+    }
+
+    @Test
     fun `getUpgradeVsInstallationStats should return empty list when no data exists`() {
         whenever(upgradeEventRepository.countUpgradeEventsByWeek(any(), isNull())).thenReturn(emptyList())
         whenever(deviceRepository.countGenuineNewDevicesByWeek(any(), isNull())).thenReturn(emptyList())
